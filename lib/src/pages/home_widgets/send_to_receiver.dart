@@ -42,7 +42,7 @@ class _SendToReceiverState extends State<SendToReceiver> {
   /// remitente, en caso de que sea false, el sistema debe continuar con el
   /// mensaje actual o en caso de error detener el sistema.
   bool _skeepToNext = false;
-  bool _hasInternet = true;
+
   bool _isSending = false;
   double _pixPerTask = 0;
   Map<String, dynamic> _simula = {};

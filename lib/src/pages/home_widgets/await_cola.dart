@@ -78,7 +78,7 @@ class _AwaitColaState extends State<AwaitCola> {
                   behavior: MyCustomScrollBehavior(),
                   child: Scrollbar(
                     controller: _ctrScrollAwait,
-                    isAlwaysShown: true,
+                    thumbVisibility: true,
                     radius: const Radius.circular(3),
                     child: ListView.builder(
                       padding: const EdgeInsets.only(right: 15, left: 10),

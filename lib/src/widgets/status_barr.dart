@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:routemaster/routemaster.dart';
 import 'package:scm/src/providers/process_provider.dart';
 
 import 'texto.dart';
@@ -67,7 +67,7 @@ class _StatusBarrState extends State<StatusBarr> {
             context.read<SocketConn>().isLoged = false;
             final crones = context.read<ProcessProvider>();
             crones.stopAllCrones();
-            Routemaster.of(context).pop();
+            context.pop();
             crones.reloadMsgAcction = 'Hasta pronto. Gracias por usar el SCM';
           }),
           const Spacer(),

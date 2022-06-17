@@ -755,33 +755,33 @@ class ProcessProvider extends ChangeNotifier {
   /// Colocamos los mensajes de la campaña actual en la cola
   Future<void> _putReceiversEnCola() async {
 
-    final _fileS = ScmFile();
+    final fileS = ScmFile();
     // Recuperar la campaña la cual se esta trabajando...
     var fwr = await GetContentFile.getContentFileWorking(folder: FoldStt.tray);
     
-    _fileS.fromFileCampaing(fwr);
-    _fileS.createNameFile();
+    fileS.fromFileCampaing(fwr);
+    fileS.createNameFile();
 
     List<String> partes = [];
-    if(_fileS.nameFileSinExt.contains(_fileS.suf)) {
-      partes = _fileS.nameFileSinExt.split(_fileS.suf);
+    if(fileS.nameFileSinExt.contains(fileS.suf)) {
+      partes = fileS.nameFileSinExt.split(fileS.suf);
     }
     if(partes.isEmpty) {
-      if(_fileS.nameFileSinExt.contains(_fileS.sufM)) {
-        partes = _fileS.nameFileSinExt.split(_fileS.sufM);
+      if(fileS.nameFileSinExt.contains(fileS.sufM)) {
+        partes = fileS.nameFileSinExt.split(fileS.sufM);
       }
     }
 
     if(partes.isEmpty) {
       terminalIsMini = false;
-      addNewtaskTerminal('[ERROR] No se ecnontró: ${_fileS.nameFileSinExt}');
+      addNewtaskTerminal('[ERROR] No se ecnontró: ${fileS.nameFileSinExt}');
       return;
     }
 
     // De la parte primera del nombre del archivo de la campaña la cual
     // se esta trabajando, buscaremos los archivos de sus receivers.
     String fixed = partes.first;
-    partes = _fileS.nameFile.split(_fileS.sF);
+    partes = fileS.nameFile.split(fileS.sF);
 
     // Primero entre los archivos de sus receivers buscamos el marcado como main.
     String? fileMain;
@@ -790,7 +790,7 @@ class ProcessProvider extends ChangeNotifier {
 
     for (var i = 0; i < enProceso.toSend.length; i++) {
 
-      fileMain = '$fixed${_fileS.sufM}${enProceso.toSend[i]}${_fileS.sF}${fwr['sufixTimeChilds']}';
+      fileMain = '$fixed${fileS.sufM}${enProceso.toSend[i]}${fileS.sF}${fwr['sufixTimeChilds']}';
       
       content = await GetContentFile.getContentByFileAndFolder(
         fileName: fileMain, folder: FoldStt.wait
@@ -816,7 +816,7 @@ class ProcessProvider extends ChangeNotifier {
 
       for (var i = 0; i < content['nextReceivers'].length; i++) {
 
-        fileMain = '$fixed${_fileS.suf}${content['nextReceivers'][i]}${_fileS.sF}${fwr['sufixTimeChilds']}';
+        fileMain = '$fixed${fileS.suf}${content['nextReceivers'][i]}${fileS.sF}${fwr['sufixTimeChilds']}';
         final contentChild = await GetContentFile.getContentByFileAndFolder(
           fileName: fileMain, folder: FoldStt.wait
         );

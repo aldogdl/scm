@@ -382,9 +382,6 @@ class SocketConn extends ChangeNotifier {
       case 'update_colaborador':
         msgErr = params['msg'];
         break;
-      case 'set_orden':
-        print(params);
-        break;
       case 'get_data_ctz':
         break;
       case 'new_contact':

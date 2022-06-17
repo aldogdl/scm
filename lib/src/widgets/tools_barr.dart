@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:routemaster/routemaster.dart';
 
 import '../config/sng_manager.dart';
 import '../providers/socket_conn.dart';
 import '../providers/process_provider.dart';
 import '../vars/globals.dart';
-import '../vars/mis_rutas.dart';
 import '../widgets/my_tool_tip.dart';
 import '../widgets/texto.dart';
 
@@ -23,8 +22,9 @@ class ToolsBarr extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     
-    final _provInit = context.watch<SocketConn>();
-    final _procProv = context.watch<ProcessProvider>();
+    final provInit = context.watch<SocketConn>();
+    final procProvW = context.watch<ProcessProvider>();
+    final procProvR = context.read<ProcessProvider>();
 
     Widget sp10 = const SizedBox(height: 10);
 
@@ -37,28 +37,26 @@ class ToolsBarr extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if(_provInit.isLoged)
+          if(provInit.isLoged)
           ...[
               _icoAcc(
                 isMini: true,
                 isActive: false,
                 icono: Icons.refresh,
                 tip: 'Refrescar',
-                fnc: () => _refrezcarPagina(context, _procProv)
+                fnc: () => _refrezcarPagina(context, procProvR)
               ),
               ..._divisor(),
               Stack(
                 children: [
                   _icoAcc(
                     isActive: false,
-                    icono: (context.watch<ProcessProvider>().isPause)
+                    icono: (procProvW.isPause)
                     ? Icons.play_arrow : Icons.pause,
-                    tip: (context.watch<ProcessProvider>().isPause)
+                    tip: (procProvW.isPause)
                     ? 'Poner en PLAY'
                     : 'Pausar Proceso',
-                    fnc: () {
-                      context.read<ProcessProvider>().isPause = !context.read<ProcessProvider>().isPause;
-                    }
+                    fnc: () { procProvR.isPause = !procProvR.isPause; }
                   ),
                   Positioned(
                     bottom: 0, right: 0,
@@ -77,26 +75,22 @@ class ToolsBarr extends StatelessWidget {
               sp10,
               _icoAcc(
                 isActive: false,
-                icono: (!context.watch<ProcessProvider>().noSend)
+                icono: (!procProvW.noSend)
                 ? Icons.send_rounded : Icons.cancel_schedule_send_sharp,
-                tip: (context.watch<ProcessProvider>().noSend)
+                tip: (procProvW.noSend)
                 ? 'Sin Enviar Mensaje'
                 : 'Enviar Mensaje',
-                fnc: () {
-                  context.read<ProcessProvider>().noSend = !context.read<ProcessProvider>().noSend;
-                }
+                fnc: () { procProvR.noSend = !procProvR.noSend; }
               ),
               sp10,
               _icoAcc(
                 isActive: false,
-                icono: (context.watch<ProcessProvider>().isTest)
+                icono: (procProvW.isTest)
                 ? Icons.bug_report : Icons.bug_report_outlined,
-                tip: (context.watch<ProcessProvider>().isTest)
+                tip: (procProvW.isTest)
                 ? 'Modo Test'
                 : 'Modo Normal',
-                fnc: () {
-                  context.read<ProcessProvider>().isTest = !context.read<ProcessProvider>().isTest;
-                }
+                fnc: () { procProvR.isTest = !procProvR.isTest; }
               ),
               ..._divisor(),
               _icoAcc(
@@ -254,12 +248,12 @@ class ToolsBarr extends StatelessWidget {
   }
 
   ///
-  void _refrezcarPagina(BuildContext context, ProcessProvider _procProv) {
+  void _refrezcarPagina(BuildContext context, ProcessProvider procProv) {
 
-    _procProv.stopAllCrones();
-    _procProv.isPause = true;
-    _procProv.cambiarDeCampaing();
-    _procProv.reloadMsgAcction = 'Revisando prioridades';
-    Routemaster.of(context).pop();
+    procProv.stopAllCrones();
+    procProv.isPause = true;
+    procProv.cambiarDeCampaing();
+    procProv.reloadMsgAcction = 'Revisando prioridades';
+    context.pop();
   }
 }

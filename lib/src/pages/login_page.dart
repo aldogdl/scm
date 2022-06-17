@@ -1,12 +1,12 @@
-import 'dart:convert';
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
 import 'package:glass_kit/glass_kit.dart';
+import 'package:go_router/go_router.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:provider/provider.dart';
-import 'package:routemaster/routemaster.dart';
 
 import 'layout_page.dart';
 import '../config/sng_manager.dart';
@@ -69,7 +69,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   void initState() {
-    WidgetsBinding.instance!.addPostFrameCallback(_initWidget);
+    WidgetsBinding.instance.addPostFrameCallback(_initWidget);
     super.initState();
   }
   
@@ -540,7 +540,7 @@ class _LoginPageState extends State<LoginPage> {
         });
         _sock.isLoged = true;
         Future.delayed(const Duration(milliseconds: 500), () {
-          Routemaster.of(context).pop();
+          context.pop();
           context.read<ProcessProvider>().reloadMsgAcction =
           'Bienvenid@ ${context.read<SocketConn>().username}';
         });
@@ -573,7 +573,7 @@ class _LoginPageState extends State<LoginPage> {
         _absorbing = false;
       });
       Future.delayed(const Duration(milliseconds: 500), () {
-        Routemaster.of(context).pop();
+        context.pop();
         context.read<ProcessProvider>().reloadMsgAcction =
           'Bienvenid@ ${_sock.username}';
       });

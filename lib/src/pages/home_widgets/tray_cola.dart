@@ -1,7 +1,7 @@
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:routemaster/routemaster.dart';
 import 'package:scm/src/widgets/texto.dart';
 
 import '../../providers/process_provider.dart';
@@ -55,7 +55,7 @@ class _TrayColaState extends State<TrayCola> {
             if(_proc.receiversCola.isEmpty) {
               if(_proc.receiverCurrent.idReceiver == 0) {
                 Future.delayed(const Duration(milliseconds: 100),(){
-                  Routemaster.of(context).pop();
+                  context.pop();
                   _proc.reloadMsgAcction = '-> LISTO ESPERANDO CAMPAÑAS';
                 });
               }
@@ -80,10 +80,10 @@ class _TrayColaState extends State<TrayCola> {
     return ScrollConfiguration(
       behavior: MyCustomScrollBehavior(),
       child: Scrollbar(
+
         controller: _ctrScrollMain,
-        isAlwaysShown: true,
+        thumbVisibility: true,
         radius: const Radius.circular(3),
-        showTrackOnHover: true,
         trackVisibility: true,
         child: Selector<ProcessProvider, bool>(
           selector: (_, provi) => provi.verColaMini,

@@ -18,17 +18,18 @@ dependencies:
     sdk: flutter
   get_it: ^7.2.0
   glass_kit: ^2.0.1
+  go_router: ^4.0.0
   http: ^0.13.4
   network_info_plus: ^2.1.3
-  path_provider: ^2.0.9
-  provider: ^6.0.2
-  puppeteer: ^2.8.0
-  routemaster: ^1.0.0
+  path: ^1.8.2
+  path_provider: ^2.0.11
+  provider: ^6.0.3
+  puppeteer: ^2.10.0
   shimmer_animation: ^2.1.0+1
-  web_socket_channel: ^2.1.0
+  web_socket_channel: ^2.2.0
 
 dev_dependencies:
-  flutter_lints: ^1.0.0
+  flutter_lints: ^2.0.1
   flutter_test:
     sdk: flutter
 

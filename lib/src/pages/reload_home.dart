@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:routemaster/routemaster.dart';
 
 import 'layout_page.dart';
 import '../providers/socket_conn.dart';
@@ -11,9 +11,7 @@ import '../widgets/texto.dart';
 
 class ReloadHome extends StatelessWidget {
   
-  const ReloadHome({
-    Key? key,
-  }) : super(key: key);
+  const ReloadHome({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -118,10 +116,10 @@ class ReloadHome extends StatelessWidget {
 
   ///
   void _login(BuildContext context) {
-
+    
     Future.delayed(const Duration(milliseconds: 3000), () {
       context.read<ProcessProvider>().cleanReloadMsgAcction();
-      Routemaster.of(context).push(MyRutas.getRut(Rname.login));
+      context.goNamed(Rname.login.name);
     });
   }
 
@@ -130,7 +128,7 @@ class ReloadHome extends StatelessWidget {
 
     Future.delayed(const Duration(milliseconds: 1000), () {
       context.read<ProcessProvider>().cleanReloadMsgAcction();
-      Routemaster.of(context).push(MyRutas.getRut(Rname.home));
+      context.goNamed(Rname.home.name);
     });
   }
 

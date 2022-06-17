@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
-import 'package:routemaster/routemaster.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'src/services/puppetter/providers/browser_provider.dart';
 import 'src/providers/process_provider.dart';
@@ -14,7 +13,7 @@ void main() async {
 
   sngManager();
   WidgetsFlutterBinding.ensureInitialized();
-
+  
   doWhenWindowReady(() {
     appWindow.minSize = const Size(360.0, 750.0);
     appWindow.maxSize = const Size(360.0, 768.0);
@@ -51,6 +50,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     
+    final router = MyRutas.get();
+
     return MaterialApp.router(
       title: 'SCM',
       debugShowCheckedModeBanner: false,
@@ -67,17 +68,10 @@ class MyApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate
       ],
-      supportedLocales: const [
-        Locale('es', 'ES'),
-      ],
-      routeInformationParser: const RoutemasterParser(),
-      routerDelegate: RoutemasterDelegate(
-      routesBuilder: (context) {
-
-          final isLoggedIn = Provider.of<SocketConn>(context).isLoged;
-          return isLoggedIn ? MyRutas.withLogin() : MyRutas.withOutLogin;
-        }
-      ),
+      supportedLocales: const [ Locale('es', 'ES') ],
+      routeInformationProvider: router.routeInformationProvider,
+      routeInformationParser: router.routeInformationParser,
+      routerDelegate: router.routerDelegate,
     );
   }
 }

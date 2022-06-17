@@ -19,7 +19,7 @@ class TerminalHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final _provW = context.watch<ProcessProvider>();
+    final provW = context.watch<ProcessProvider>();
 
     return Container(
       padding: const EdgeInsets.all(5),
@@ -31,7 +31,7 @@ class TerminalHeader extends StatelessWidget {
         children: [
           if(showClose)
             Texto(
-              txt: '[${_provW.taskTerminal.length}] LA TERMINAL',
+              txt: '[${provW.taskTerminal.length}] LA TERMINAL',
               txtC: Colors.grey, sz: 13, isBold: false
             )
           else
@@ -65,9 +65,9 @@ class TerminalHeader extends StatelessWidget {
               constraints: const BoxConstraints(
                 maxHeight: 18
               ),
-              onPressed: () => context.read<ProcessProvider>().terminalIsMini = !_provW.terminalIsMini,
+              onPressed: () => context.read<ProcessProvider>().terminalIsMini = !provW.terminalIsMini,
               icon: Icon(
-                (!_provW.terminalIsMini) ? Icons.close : Icons.home_max_outlined,
+                (!provW.terminalIsMini) ? Icons.close : Icons.home_max_outlined,
                 size: 18,
               )
             ),

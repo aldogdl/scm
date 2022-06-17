@@ -1,34 +1,13 @@
-import 'package:flutter/material.dart' show MaterialPage, Widget, RouteSettings;
-import 'package:routemaster/routemaster.dart';
-import 'package:scm/src/pages/reload_home.dart';
+import 'package:flutter/material.dart' show BuildContext;
+import 'package:go_router/go_router.dart';
 
+import '../pages/reload_home.dart';
 import '../pages/home_page.dart';
 import '../pages/login_page.dart';
 
 enum Rname { login, home, reload, clean }
 
 class MyRutas {
-
-  ///
-  static final withOutLogin = RouteMap(
-
-    onUnknownRoute: (route) => const Redirect('/'),
-    routes: {
-      '/': (_) => _page(const ReloadHome()),
-      '/login': (_) => _page(const LoginPage()),
-    },
-  );
-
-  ///
-  static RouteMap withLogin() {
-
-    Map<String, RouteSettings Function(RouteData)> rutas = {};
-
-    _paths.map((rta){
-      return rutas.putIfAbsent(rta['path'], () => (_) => _page(rta['child']));
-    }).toList();
-    return RouteMap(routes: rutas);
-  }
 
   ///
   static const Map<Rname, String> _pathStr = {
@@ -39,22 +18,33 @@ class MyRutas {
   };
 
   ///
-  static final List<Map<String, dynamic>> _paths = [
-    {'path': '${_pathStr[Rname.clean]}', 'child': const ReloadHome()},
-    {'path': '${_pathStr[Rname.home]}', 'child': const HomePage()},
-    {'path': '${_pathStr[Rname.login]}', 'child': const LoginPage()},
-    {'path': '${_pathStr[Rname.reload]}', 'child': const ReloadHome()},
-  ];
+  static GoRouter get() {
 
-  ///
-  static String getRut(Rname ruta) {
-
-    if(_pathStr.containsKey(ruta)) {
-      return _pathStr[ruta]!;
-    }
-    return '/';
+    return GoRouter(
+      routes: <GoRoute>[
+        GoRoute(
+          path: _pathStr[Rname.clean]!,
+          name: Rname.clean.name,
+          builder: (BuildContext context, GoRouterState state) => const ReloadHome(),
+        ),
+        GoRoute(
+          path: _pathStr[Rname.home]!,
+          name: Rname.home.name,
+          builder: (BuildContext context, GoRouterState state) => const HomePage(),
+        ),
+        GoRoute(
+          path: _pathStr[Rname.login]!,
+          name: Rname.login.name,
+          builder: (BuildContext context, GoRouterState state) => const LoginPage(),
+        ),
+        GoRoute(
+          path: _pathStr[Rname.reload]!,
+          name: Rname.reload.name,
+          builder: (BuildContext context, GoRouterState state) => const ReloadHome(),
+        ),
+      ],
+    );
   }
 
-  ///
-  static MaterialPage _page(Widget child) => MaterialPage(child: child);
+
 }

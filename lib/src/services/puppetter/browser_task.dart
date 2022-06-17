@@ -1,4 +1,4 @@
-import 'package:puppeteer/puppeteer.dart' as _pupp show
+import 'package:puppeteer/puppeteer.dart' as pupp show
 ElementHandle, Key;
 
 import 'browser_sng.dart';
@@ -38,7 +38,7 @@ class BrowserTask {
     String? select = mapConcep['bskContac']!['html'];
     if(select != null) {
       try {
-        _pupp.ElementHandle? element = await _wp.pagewa!.waitForSelector(select);
+        pupp.ElementHandle? element = await _wp.pagewa!.waitForSelector(select);
         if(element == null) {
           return 'ERROR<stop> Ya no hay conexión con la App de Whatsapp';
         }
@@ -62,7 +62,7 @@ class BrowserTask {
 
     String? select = mapConcep['bskContac']!['html'];
 
-    late _pupp.ElementHandle? element;
+    late pupp.ElementHandle? element;
     if(select != null) {
       try {
         element = await _wp.pagewa!.waitForSelector(select);
@@ -140,7 +140,7 @@ class BrowserTask {
 
     if(select != null) {
 
-      _pupp.ElementHandle? element = await _wp.pagewa!.waitForSelector(select);
+      pupp.ElementHandle? element = await _wp.pagewa!.waitForSelector(select);
       try {
         element = await _wp.pagewa!.$OrNull(select);
       } catch (_) {}
@@ -181,7 +181,7 @@ class BrowserTask {
     String? select = mapConcep['btnSend']!['html'];
     
     if(select != null) {
-      _pupp.ElementHandle? element = await _wp.pagewa!.waitForSelector(select);
+      pupp.ElementHandle? element = await _wp.pagewa!.waitForSelector(select);
       try {
         element = await _wp.pagewa!.$OrNull(select);
       } catch (_) {}
@@ -197,7 +197,7 @@ class BrowserTask {
   }
 
   /// Escribimos en la caja de busqueda de contactos.
-  static Future<String> _writeBskContac(String txt, _pupp.ElementHandle? element) async {
+  static Future<String> _writeBskContac(String txt, pupp.ElementHandle? element) async {
 
     String? select;
     if(element == null) {
@@ -213,12 +213,12 @@ class BrowserTask {
 
       if(contenido != null) {
         if(contenido.isNotEmpty) {
-          await _wp.pagewa!.keyboard.press(_pupp.Key.end);
-          await _wp.pagewa!.keyboard.down(_pupp.Key.shift);
-          await _wp.pagewa!.keyboard.press(_pupp.Key.home);
-          await _wp.pagewa!.keyboard.up(_pupp.Key.shift);
+          await _wp.pagewa!.keyboard.press(pupp.Key.end);
+          await _wp.pagewa!.keyboard.down(pupp.Key.shift);
+          await _wp.pagewa!.keyboard.press(pupp.Key.home);
+          await _wp.pagewa!.keyboard.up(pupp.Key.shift);
           await _wait(100);
-          await _wp.pagewa!.keyboard.press(_pupp.Key.delete);
+          await _wp.pagewa!.keyboard.press(pupp.Key.delete);
           await _wait(100);
         }
       }
@@ -230,10 +230,10 @@ class BrowserTask {
       bool hasContent = true;
       if(contenido != null) {
         if(contenido.isNotEmpty) {
-          await _wp.pagewa!.keyboard.press(_pupp.Key.end);
-          await _wp.pagewa!.keyboard.down(_pupp.Key.shift);
-          await _wp.pagewa!.keyboard.press(_pupp.Key.home);
-          await _wp.pagewa!.keyboard.up(_pupp.Key.shift);
+          await _wp.pagewa!.keyboard.press(pupp.Key.end);
+          await _wp.pagewa!.keyboard.down(pupp.Key.shift);
+          await _wp.pagewa!.keyboard.press(pupp.Key.home);
+          await _wp.pagewa!.keyboard.up(pupp.Key.shift);
         }else{
           hasContent = false;
         }
@@ -248,7 +248,7 @@ class BrowserTask {
       int timer = 1;
       bool hasErr = false;
       select = mapConcep['btnDelCtc']!['html'];
-      _pupp.ElementHandle? btn = await _wp.pagewa!.waitForSelector(select!);
+      pupp.ElementHandle? btn = await _wp.pagewa!.waitForSelector(select!);
       do {
         if(espera == timer) { hasErr = true; break; }
         await _wait(1000);
@@ -264,10 +264,10 @@ class BrowserTask {
             return 'ok';
           }
         }
-        await _wp.pagewa!.keyboard.press(_pupp.Key.end);
-        await _wp.pagewa!.keyboard.down(_pupp.Key.shift);
-        await _wp.pagewa!.keyboard.press(_pupp.Key.home);
-        await _wp.pagewa!.keyboard.up(_pupp.Key.shift);
+        await _wp.pagewa!.keyboard.press(pupp.Key.end);
+        await _wp.pagewa!.keyboard.down(pupp.Key.shift);
+        await _wp.pagewa!.keyboard.press(pupp.Key.home);
+        await _wp.pagewa!.keyboard.up(pupp.Key.shift);
         await _wait(300);
         await element.type(txt, delay: _tiempoDeEscritura);
         contenido = await element.evaluate<String>('node => node.innerText');
@@ -290,7 +290,7 @@ class BrowserTask {
   static Future<String> _corroborarChat(String nombre) async {
 
     String? select = mapConcep['titDelChat']!['html'];
-    _pupp.ElementHandle? element = await _wp.pagewa!.waitForSelector(select!);
+    pupp.ElementHandle? element = await _wp.pagewa!.waitForSelector(select!);
     if(element != null) {
 
       String? nombreDelChat = await element.evaluate<String>('node => node.innerText');
@@ -304,19 +304,19 @@ class BrowserTask {
   }
 
   ///
-  static Future<String> _writeMensaje(_pupp.ElementHandle element, List<String> msg) async {
+  static Future<String> _writeMensaje(pupp.ElementHandle element, List<String> msg) async {
 
     await element.click();
     var contenido = await element.evaluate<String>('node => node.innerText');
 
     if(contenido != null) {
       if(contenido.isNotEmpty) {
-        await _wp.pagewa!.keyboard.down(_pupp.Key.control);
-        await _wp.pagewa!.keyboard.press(_pupp.Key.keyA);
-        await _wp.pagewa!.keyboard.up(_pupp.Key.control);
-        await _wp.pagewa!.keyboard.up(_pupp.Key.keyA);
+        await _wp.pagewa!.keyboard.down(pupp.Key.control);
+        await _wp.pagewa!.keyboard.press(pupp.Key.keyA);
+        await _wp.pagewa!.keyboard.up(pupp.Key.control);
+        await _wp.pagewa!.keyboard.up(pupp.Key.keyA);
         await _wait(100);
-        await _wp.pagewa!.keyboard.press(_pupp.Key.delete);
+        await _wp.pagewa!.keyboard.press(pupp.Key.delete);
         await _wait(100);
       }
     }
@@ -324,9 +324,9 @@ class BrowserTask {
     for (var i = 0; i < msg.length; i++) {
 
       if(msg[i].contains('_sp_')) {
-        await _wp.pagewa!.keyboard.down(_pupp.Key.control);
-        await _wp.pagewa!.keyboard.press(_pupp.Key.enter);
-        await _wp.pagewa!.keyboard.up(_pupp.Key.control);
+        await _wp.pagewa!.keyboard.down(pupp.Key.control);
+        await _wp.pagewa!.keyboard.press(pupp.Key.enter);
+        await _wp.pagewa!.keyboard.up(pupp.Key.control);
         await _wait(100);
       }else{
         await element.type(msg[i], delay: const Duration(milliseconds:8));
