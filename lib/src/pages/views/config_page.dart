@@ -186,15 +186,6 @@ class _ConfigPageState extends State<ConfigPage> {
 
     return [
       _tileBtnAcc(
-        icon: Icons.sensors_off_rounded,
-        label: (!context.watch<ProcessProvider>().isStopedByUserRemoto)
-        ? '[SCM] Detener Monitoreo Remoto'
-        : '[SCM] Re-Iniciar Monitoreo Remoto',
-        fnc: () => _stopWatchRemoto(
-          context.read<ProcessProvider>()
-        )
-      ),
-      _tileBtnAcc(
         icon: Icons.remove_red_eye,
         label:  (!context.watch<ProcessProvider>().isStopedByUserFiles)
         ? '[SCM] Detener Monitoreo  de Archivos'
@@ -291,18 +282,13 @@ class _ConfigPageState extends State<ConfigPage> {
       ),
       _tileDataConn(
         ico: Icons.circle, tit: 'ID REG UNICO:',
-        val: '${_globals.idUser}'
+        val: '${_globals.user.id}'
       ),
       _tileDataConn(
         ico: Icons.circle, tit: 'Clave única de registro C.:',
-        val: _globals.curc
+        val: _globals.user.curc
       ),
     ];
-  }
-
-  ///  
-  Future<void> _stopWatchRemoto(ProcessProvider prov) async {
-    prov.isStopedByUserRemoto = !prov.isStopedByUserRemoto;
   }
 
   ///    
@@ -311,9 +297,7 @@ class _ConfigPageState extends State<ConfigPage> {
   }
 
   ///
-  void _harbiPing() async {
-    await _sock.ping();
-  }
+  void _harbiPing() async => _sock.sendPing('reping');
 
   ///
   void _harbiClsScreen() {

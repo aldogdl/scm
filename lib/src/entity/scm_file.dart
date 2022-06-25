@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:scm/src/services/get_paths.dart';
+import '../services/get_paths.dart';
 
 enum FoldStt {
   stage, wait, tray, drash, sended
@@ -47,7 +47,7 @@ class ScmFile {
 
     msg = json['id'];
     if(json.containsKey('target')) {
-      tar = '${json['target']['id']}';
+      tar = '${json[json['target']]['id']}';
     }else{
       tar = '_';
     }
@@ -72,21 +72,10 @@ class ScmFile {
   }
 
   ///
-  Map<String, dynamic> toScmEntity(String pathOriginStage, List<int> receivers) {
-
-    int? receptor = int.tryParse(rec);
-    if(receptor != null) {
-      if(receivers.contains(receptor)) {
-        receivers.remove(receptor);
-      }
-    }else{
-      receptor = 0;
-    }
+  Map<String, dynamic> toScmEntity(String pathOriginStage, int receiverId) {
     return {
-      'nFile' : nameFile,
       'data': convertPathTo(FoldStt.tray, pathOriginStage),
-      'idReceiver': receptor,
-      'nextReceivers': receivers
+      'idReceiver': receiverId,
     };
   }
 
@@ -132,9 +121,8 @@ class ScmFile {
 
     partes = nameFile.split(sF);
     pri = int.parse(partes[0]);
-    tar = partes[1];
-    msg = int.parse(partes[2]);
-    rec = partes[5];
+    msg = int.parse(partes[1]);
+    tar = partes[2];
     partes = partes.last.split('.');
     created = DateTime.fromMillisecondsSinceEpoch(int.parse(partes.first));
   }

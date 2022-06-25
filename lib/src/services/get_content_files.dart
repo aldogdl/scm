@@ -1,141 +1,17 @@
-import 'dart:convert';
 import 'dart:io';
+import 'dart:convert';
 
-import '../config/sng_manager.dart';
+import 'my_http.dart';
 import '../entity/contacts_entity.dart';
 import '../entity/scm_file.dart';
 import '../entity/proceso_entity.dart';
 import '../entity/scm_entity.dart';
+import '../services/scm/scm_paths.dart';
 import '../services/get_paths.dart';
-import '../vars/globals.dart';
-import 'my_http.dart';
 
 class GetContentFile {
 
-  static final Globals _globals = getSngOf<Globals>();
-
-  ///
-  static Future<List<String>> cargos() async {
-
-    String pathTo = await GetPaths.getFileByPath('cargos');
-    final File cargosF = File(pathTo);
-    if(cargosF.existsSync()) {
-      return List<String>.from( json.decode(cargosF.readAsStringSync()) );
-    }
-    return [];
-  }
-
-  ///
-  static Future<List<Map<String, dynamic>>> roles() async {
-
-    String pathTo = await GetPaths.getFileByPath('roles');
-    final File cargosF = File(pathTo);
-    if(cargosF.existsSync()) {
-      return List<Map<String, dynamic>>.from( json.decode(cargosF.readAsStringSync()) );
-    }
-    return [];
-  }
-
-  ///
-  static Future<List<Map<String, dynamic>>> regOfLogin() async {
-
-    List<Map<String, dynamic>> registros = [];
-
-    final pathTo = await GetPaths.getFileByPath('connpass');
-    final pathLog = await GetPaths.getFileByPath('connwho');
-    final regs = File(pathTo);
-    final logs = File(pathLog);
-    if(regs.existsSync()) {
-
-      final mRegs = Map<String, dynamic>.from( json.decode(regs.readAsStringSync()) );
-      late final List<Map<String, dynamic>> llogs;
-      if(regs.existsSync()) {
-        llogs = List<Map<String, dynamic>>.from( json.decode(logs.readAsStringSync()) );
-      }else{
-        llogs = [];
-      }
-
-      mRegs.forEach((key, value) {
-        var reg = Map<String, dynamic>.from(value);
-        if(llogs.isNotEmpty) {
-          reg['logs'] = llogs.where((element) => element['curc'] == reg['curc']).toList();
-        }
-        registros.add(reg);
-      });
-    }
-    return registros;
-  }
-
-  ///
-  static Future<bool> deleteRegOfLogin(String curc) async {
-
-    final pathTo = await GetPaths.getFileByPath('connpass');
-    final regs = File(pathTo);
-    if(regs.existsSync()) {
-
-      Map<String, dynamic> newsRegs = {};
-      final mRegs = Map<String, dynamic>.from( json.decode(regs.readAsStringSync()) );
-      if(mRegs.isNotEmpty){
-        mRegs.forEach((key, value) {
-          if(value['curc'] != curc) {
-            newsRegs.putIfAbsent(key, () => value);
-          }
-        });
-      }
-      if(newsRegs.isNotEmpty) {
-        regs.writeAsStringSync( json.encode(newsRegs) );
-      }
-      return true;
-    }
-    
-    return false;
-  }
-
-  /// Cambiar la ip en el archivo local paths
-  static Future<void> cambiarIpEnArchivoPath(String nuevaIp) async {
-
-    nuevaIp = nuevaIp.trim();
-    final pathRoot = GetPaths.getPathRoot();
-    final regs = File('$pathRoot${GetPaths.getSep()}${GetPaths.nameFilePathsP}');
-    if(regs.existsSync()) {
-
-      Map<String, dynamic> mRegs = Map<String, dynamic>.from( json.decode(regs.readAsStringSync()) );
-
-      late Uri ipF;
-      late Uri ipG;
-      String baseT  = (_globals.isLocalConn) ? 'base_l' : 'base_r';
-      String baseTF = (_globals.isLocalConn) ? 'server_local' : 'server_remote';
-      String ipCF   = mRegs[baseTF];
-
-      ipF = Uri.parse(ipCF);
-      ipG = Uri.parse(_globals.ipDbs[baseT]);
-
-      if(ipF.host.trim() != nuevaIp) {
-        ipF = ipF.replace(host: nuevaIp, port: _globals.ipDbs['port_s']);
-        mRegs[baseTF] = ipF.toString();
-        regs.writeAsStringSync(json.encode(mRegs));
-      }
-      
-      if(ipG.host.trim() != nuevaIp) {
-        ipG = ipG.replace(host: nuevaIp, port: _globals.ipDbs['port_s']);
-        _globals.ipDbs[baseT] = ipG.toString();
-      }
-    }
-
-  }
-
-  /// Recuperamos los autos marcas y modelos
-  static Future<List<Map<String, dynamic>>> getAllAuto() async {
-
-    final String pathRoot = await GetPaths.getFileByPath('autos');
-    final regs = File(pathRoot);
-    if(regs.existsSync()) {
-      return List<Map<String, dynamic>>.from( json.decode(regs.readAsStringSync()) );
-    }
-    return [];
-  }
-
-  /// Recuperamos el nombre del folder desde el enum.
+  /// [r] Recuperamos el nombre del folder desde el enum.
   static String getFolder(FoldStt fld) {
     if(fld.name == 'wait') {
       return 'scm_a${fld.name}';
@@ -158,54 +34,31 @@ class GetContentFile {
     return null;
   }
 
-  /// Construimos un archivo independiente por cada campaña que se encuentre
-  static Future<void> putNewFileInStage(List<Map<String, dynamic>> campas, String tipo) async {
-
-    final path = GetPaths.getPathsFolderTo(getFolder(FoldStt.stage));
-
-    for (var i = 0; i < campas.length; i++) {
-
-      ScmFile fileS = ScmFile();
-      fileS.fromFileCampaing(campas[i]);
-      fileS.createNameFile();
-
-      campas[i]['toSend'] = List<int>.from(campas[i]['receivers']);
-      campas[i]['noSend'] = List<int>.from(campas[i]['receivers']);
-      campas[i]['sended'] = [];
-
-      File newFile = File('${path!.path}${fileS.sep}${fileS.nameFile}');
-      newFile.writeAsStringSync(
-        json.encode( Map<String, dynamic>.from(campas[i]) )
-      );
-    }
-  }
-
-  /// Buscamos el archivo el cual estamos trabajando
+  /// [r] Le colocamos el prefijo _wk_ al archivo que se encuentre en el
+  /// stage, para que el cron lo tome y lo empiece a procesar.
   /// [RETURN] bacio en caso de no existir ningun archivo en la carpeta
   static Future<String> putWorkingIfAbsent({
     required FoldStt folder
   }) async {
 
-    ScmFile? fileS = ScmFile();
     final res = await getPathFileWorking(folder: folder);
     
     if(!res['has'] && res['uri'].isNotEmpty) {
-      if(!res['uri'].toString().contains(fileS.prefixFldSended)) {
-        fileS = ScmFile(pathOrigin: res['uri']);
-        return await fileS.prefixWorking(accion: 'put');
+      // Le ponemos el prefixo de trabajo, en caso de no estar ya enviado.
+      if(!res['uri'].toString().contains(ScmPaths.prefixFldSended)) {
+        return ScmPaths.setPrefixWorking(res['uri']);
       }
     }
-    if(!res['uri'].toString().contains(fileS.prefixFldSended)) {
+    if(!res['uri'].toString().contains(ScmPaths.prefixFldSended)) {
       return res['uri'];
     }
     return '';
   }
 
-  /// Buscamos el archivo el cual estamos trabajando
-  /// [RETURN] bacio en caso de no existir ningun archivo en la carpeta
-  static Future<Map<String, dynamic>> getPathFileWorking({
-    required FoldStt folder
-  }) async {
+  /// [r] Buscamos el archivo el cual estamos trabajando
+  /// [RETURN] bacio en caso de no existir ningun o
+  /// el ultimo encontrado sin procesar aun.
+  static Future<Map<String, dynamic>> getPathFileWorking({required FoldStt folder}) async {
 
     String uri = '';
     bool isNew = true;
@@ -216,18 +69,23 @@ class GetContentFile {
         final msgs = fld.listSync();
         
         if(msgs.isNotEmpty) {
-
-          ScmFile fileS = ScmFile();
-          if(!msgs.first.path.contains(fileS.prefixFldWrk)) {
-
+          if(!msgs.first.path.contains(ScmPaths.prefixFldWrk)) {
+            List<String> todos = [];
             for (var i = 0; i < msgs.length; i++) {
-              if(!msgs[i].path.contains(fileS.prefixFldSended)) {
-                uri = msgs[i].path;
-                if(msgs[i].path.endsWith('.json') && msgs[i].path.contains(fileS.prefixFldWrk)) {
-                  isNew = false;
-                  break;
+              if(!msgs[i].path.contains(ScmPaths.prefixFldSended)) {
+                if(msgs[i].path.endsWith('.json')) {
+                  uri = msgs[i].path;
+                  todos.add(uri);
+                  if(msgs[i].path.contains(ScmPaths.prefixFldWrk)) {
+                    isNew = false;
+                    break;
+                  }
                 }
               }
+            }
+            if(isNew) {
+              uri = (todos.isEmpty) ? '' : todos.first;
+              todos = [];
             }
           }else{
             uri = msgs.first.path;
@@ -250,7 +108,7 @@ class GetContentFile {
     return {};
   }
 
-  /// Recuperamos el contenido del archivo indicado en la carpeta indicada
+  /// [r] Recuperamos el contenido del archivo indicado en la carpeta indicada
   static Future<Map<String, dynamic>> getContentByFileAndFolder({
     required String fileName, required FoldStt folder,
   }) async {
@@ -277,16 +135,25 @@ class GetContentFile {
     fileContent.writeAsStringSync( json.encode(content) );
   }
 
-  /// Extraemos el siguiente remitente a cual se le enviará un mensaje desde
+  /// [r] Extraemos el siguiente remitente a cual se le enviará un mensaje desde
   /// el archivo principal de datos ubicado en el Stage y colocamos los extractos
-  /// en la carpeta de CACHE
+  /// en la carpeta de AWAIT
   static Future<void> extraerReceptores(String pathWrk) async {
 
     Map<String, dynamic> content = await getMsgToMap(pathWrk);
     if(content.isEmpty) return;
+    if(!content['src'].containsKey('receivers')) {
+      content['src']['receivers'] = [];
+    }
 
-    if(content['receivers'].isNotEmpty) {
+    if(content['src']['receivers'].isNotEmpty) {
+      // Indica que solo a estos receptores debe ser enviada la campaña
+      
       content = await _extraerReceptoresAndPutAwait(content, pathWrk);
+    }else{
+
+      // Si no hay receivers indicados, entonces enviar a todos la campaña.
+      content = await _setReceptoresAndPutAwait(content, pathWrk);
       final file = File(pathWrk);
       file.writeAsStringSync( json.encode(content) );
       // Pasamos el archivo de datos principal de STAGE a la carpera de TRAY
@@ -300,58 +167,148 @@ class GetContentFile {
   static Future<Map<String, dynamic>> _extraerReceptoresAndPutAwait(
     Map<String, dynamic> data, String pathFile
   ) async {
-    
-    final receivers = List<int>.from(data['receivers']);
-    final nextReceivers = List<int>.from(data['receivers']);
-    if(receivers.isNotEmpty) {
 
+    // final receivers = List<int>.from(data['receivers']);
+    // final nextReceivers = List<int>.from(data['receivers']);
+    // TODO
+    return {};
+  }
+
+  /// [r] Buscamos y filtramos a todos los receptores que coinsidan con los
+  /// criterios de esta campaña y los colocamos en la carpeta de AWAIT
+  static Future<Map<String, dynamic>> _setReceptoresAndPutAwait(
+    Map<String, dynamic> data, String pathFile
+  ) async {
+    
+    final receivers = await getContenetToList(await GetPaths.getFileByPath('cotizadores'));
+
+    if(receivers.isNotEmpty) {
+      final s = GetPaths.getSep();
       final pathToWait  = GetPaths.getPathsFolderTo(getFolder(FoldStt.wait));
-      final fileS = ScmFile();
-      fileS.pathSinFile = pathToWait!.path;
-      fileS.fromFileCampaing(data);
-      List<int> integridad = [];
-      String sufixTimeChilds = '';
+      final pathToTray  = GetPaths.getPathsFolderTo(getFolder(FoldStt.tray));
+      final nameF = ScmPaths.removePrefixWork(pathFile);
+      Map<String, List<ScmEntity>>? recps = {
+        'priory': [], 'alto': [], 'medium': [], 'normal': [],
+      };
+
       for (var i = 0; i < receivers.length; i++) {
 
-        fileS.createNameFile(receptor: '${receivers[i]}');
-        integridad.add(receivers[i]);
-        ScmEntity scm = ScmEntity();
-        if(i == 0) {
-          fileS.nameFile = fileS.nameFile.replaceFirst(
-            fileS.suf, fileS.sufM
-          );
-          final partes = fileS.nameFile.split(fileS.sF); 
-          sufixTimeChilds = partes.last;
+        final passFilter = await _pasaFilter(receivers[i], data);
+        if(passFilter['pasa']) {
+          ScmEntity scm = ScmEntity();
+          scm.fromCampaing(data['id'], '${pathToTray!.path}$s$nameF', receivers[i]);
+          recps[passFilter['priority']]!.add(scm);
         }
-        scm.init(
-          fileS.toScmEntity(pathFile, List<int>.from(receivers)),
-          idCampaing: data['id']
-        );
-        if(nextReceivers.isNotEmpty) {
-          nextReceivers.remove(scm.idReceiver);
-        }
-        scm.nextReceivers = nextReceivers;
+      }
 
-        // Crear el achivo para el remitente y ponerlo en await.
-        final fileRemit = File('${fileS.pathSinFile}${fileS.sep}${fileS.nameFile}');
-        fileRemit.writeAsStringSync( json.encode( scm.toJson()) );
-        await Future.delayed(const Duration(milliseconds: 300));
+      List<String> lstFiles = [];
+      List<ScmEntity> receptores = [];
+      recps.forEach((key, value) {
+        receptores.addAll(value);
+      });
+      if(receptores.isNotEmpty) {
+        for (var i = 0; i < receptores.length; i++) {
+          // Crear el achivo para el remitente y ponerlo en await.
+          final nameFile = ScmPaths.createNameFileReceptor(data['id']);
+          final fileRemit = File('${pathToWait!.path}$s$nameFile');
+          lstFiles.add(nameFile);
+          fileRemit.writeAsStringSync( json.encode( receptores[i].toJson()) );
+          await Future.delayed(const Duration(milliseconds: 300));
+        }
       }
       
-      final compare = List<int>.from(data['receivers']);
-      for (var i = 0; i < compare.length; i++) {
-        if(integridad.contains(compare[i])) {
-          integridad.remove(compare[i]);
-        }
-      }
-      data['receivers'] = integridad;
-      data['sufixTimeChilds'] = sufixTimeChilds;
+      data['toSend'] = List<String>.from(lstFiles);
+      data['noSend'] = List<String>.from(lstFiles);
+      lstFiles = [];
+      receptores = [];
     }
 
     return data;
   }
 
-  /// Obtenemos la cantidad de archivos en el folder solicitado
+  /// [r] Revisamos que el receptor pase los filtros
+  static Future<Map<String, dynamic>> _pasaFilter(receiver, campaing) async {
+
+    String priority = 'normal';
+    // revisamos si la campaña solicita filtrado
+    if(!campaing['campaing']['isConFilt']) { return {'priority': priority, 'pasa':true}; }
+    
+    // vemos la localidad. all | loc | for
+    final z = campaing['src']['filter']['zona'];
+    if(z != 'all') {
+      if(z == 'for' && receiver['e_isLocal']) {
+        return {'priority': priority, 'pasa':false};
+      }
+    }
+
+    bool pasa = true;
+    if(receiver['f_plan'] != null) {
+      String subPri = 'normal';
+      if(receiver['f_plan'] != 'driver'){
+        subPri = (receiver['f_plan'] == 'pilot') ? 'medium' : 'alto';
+      }
+
+      if(receiver['f_isFav'] != null) {
+        if(receiver['f_isFav'] && priority == 'normal') {
+          subPri = 'medium';
+        }
+        if(receiver['f_isFav'] && priority == 'medium') {
+          subPri = 'alto';
+        }
+        if(receiver['f_isFav'] && priority == 'alto') {
+          subPri = 'priory';
+        }
+      }
+      priority = subPri;
+    }
+
+    // Revisamos restricciones mk | md | pz
+    if(receiver['f_restris'] != null) {
+      pasa = await _checkFilterOf(
+        Map<String, dynamic>.from(receiver['f_restris']), campaing
+      );
+    }
+
+    return {'priority': priority, 'pasa':pasa};
+  }
+
+  /// [r]
+  static Future<bool> _checkFilterOf(Map<String, dynamic> filtro, Map<String, dynamic> camp) async {
+
+    bool pasa = true;
+    final mk = List<int>.from(filtro['mk']);
+    final md = List<int>.from(filtro['md']);
+    final pz = List<int>.from(filtro['pz']);
+    if(camp.containsKey('orden')) {
+      if(camp['orden'].containsKey('marca')) {
+        if(mk.isNotEmpty) {
+          // Cuentas con restricciones de marca, es decir solo maneja estas
+          if(!mk.contains(camp['orden']['marca']['id'])){
+            return false;
+          }
+        }
+      }
+      if(camp['orden'].containsKey('modelo')) {
+        if(md.isNotEmpty) {
+          // Cuentas con restricciones de modelos, es decir solo maneja estos
+          if(!md.contains(camp['orden']['modelo']['id'])){
+            return false;
+          }
+        }
+      }
+      if(camp['orden'].containsKey('pzaReg')) {
+        if(pz.isNotEmpty) {
+          // Cuentas con restricciones de piezas, es decir solo maneja estas
+          if(!pz.contains(camp['orden']['modelo']['id'])){
+            return false;
+          }
+        }
+      }
+    }
+    return pasa;
+  }
+
+  /// [r] Obtenemos la cantidad de archivos en el folder solicitado
   static Future<int> getCantContentFilesByFolder(FoldStt folder) async {
 
     final fld = GetPaths.getPathsFolderTo(getFolder(folder));
@@ -468,8 +425,10 @@ class GetContentFile {
     return (getMap) ? ctcEntity : null;
   }
 
-  /// Obtenemos el contenido del archivo indicado por parametro
-  static Future<Map<String, dynamic>> getMsgToMap(String pathFile) async {
+  /// [r] Obtenemos el contenido del archivo indicado por parametro
+  static Future<Map<String, dynamic>> getMsgToMap(
+    String pathFile
+  ) async {
 
     if(pathFile.isEmpty){ return {}; }
     File content = File(pathFile);
@@ -480,6 +439,193 @@ class GetContentFile {
       );
     }
     return {};
+  }
+
+  /// [r] Obtenemos el contenido del archivo indicado por parametro
+  static Future<List<Map<String, dynamic>>> getContenetToList(String pathFile) async {
+
+    if(pathFile.isEmpty){ return []; }
+
+    File content = File(pathFile);
+    const decode = JsonDecoder();
+    if(content.existsSync()) {
+      return List<Map<String, dynamic>>.from(
+        decode.convert( content.readAsStringSync() )
+      );
+    }
+    return [];
+  }
+
+  
+  /// [r] Retorna el nombre del archivo dentro de TRAY que cuenta
+  /// con la mayor prioridad.
+  static Future<String> searchPriority(List<FileSystemEntity> campas) async {
+
+    String current = '';
+    String findF = '';
+    List<List<String>> archivos = [];
+    List<List<String>> priory = [];
+    
+    // Recorremos la lista para recuperar los nombres de los archivos
+    for (var i = 0; i < campas.length; i++) {
+
+      if(!campas[i].path.contains(ScmPaths.prefixFldSended)) {
+
+        findF = ScmPaths.extractNameFile(campas[i].path);
+        if(findF.startsWith(ScmPaths.prefixFldWrk)) {
+          findF = findF.replaceFirst(ScmPaths.prefixFldWrk, '').trim();
+          current = findF;
+        }
+        archivos.add(findF.split(ScmPaths.sF));
+      }
+    }
+    
+    if(archivos.isEmpty) {
+      if(current.isNotEmpty) {
+        return current;
+      }
+      return '';
+    }
+
+    priory = List<List<String>>.from(archivos);
+
+    // Reducimos la lista a una mayor prioridad haceindo dicho analisis
+    // dos veces, ya que los dos primeros numeros son los que se analizan
+    for (var i = 1; i > -1; i--) {
+
+      bool isLast = (i <= 0) ? true : false;
+      priory = _findMayorPrioridad(
+        toReduce: priory, index: i, isLast: isLast
+      );
+      if(priory.isEmpty && !isLast) {
+        priory = List<List<String>>.from(archivos);
+      }
+    }
+
+    if(priory.isEmpty) {
+      if(current.isNotEmpty) {
+        return current;
+      }
+      return '';
+    }else{
+      findF = priory.first.join(ScmPaths.sF);
+      priory = [];
+    }
+
+    // Ultima prueba de prioridad contra el current.
+    if(current.isNotEmpty){
+      if(current != findF) {
+        List<String> finalComp = [current, findF];
+        finalComp.sort();
+        findF = finalComp.first;
+      }
+    }
+
+    return findF;
+  }
+  
+  /// [r] Analizamos la lista de archivos que se encuentran en TRAY
+  /// con la finalidad de reducirla a una mayor prioridad
+  static List<List<String>> _findMayorPrioridad({
+    required List<List<String>> toReduce,
+    required int index, required bool isLast,
+  }) {
+
+    List<String> elFirst = toReduce.first;
+    List<List<String>> result = [];
+    int valueInit = -1;
+    for (var i = 0; i < toReduce.length; i++) {
+
+      if(!toReduce[i].contains('_')) {
+        if(i == 0) {
+          valueInit = int.tryParse(toReduce[i][index]) ?? 0;
+        }
+        int vnew = int.tryParse(toReduce[i][index]) ?? 0;
+
+        if(vnew < valueInit) {
+          result.add(toReduce[i]);
+          valueInit = vnew;
+        }
+      }
+    }
+    
+    if(isLast) {
+      result = (result.isEmpty) ? [elFirst] : result;
+    }
+    return result;
+  }
+
+  /// [r] Revisamos que el archivo encontrado con mayor prioridad
+  /// sea el mismo que el que esta actualmente en proceso
+  static Future<bool> isSameCampaing(
+    String currentFileProcess, String fileCamp
+  ) async {
+
+    if(!fileCamp.contains(ScmPaths.prefixFldWrk)) {
+      fileCamp = ScmPaths.setPrefixWorking(fileCamp, isPath: false);
+    }
+    if(currentFileProcess.isNotEmpty) {
+      final current = ScmPaths.extractNameFile(currentFileProcess);
+      return (fileCamp == current) ? true : false;
+    }
+    return false;
+  }
+
+  /// [r] Cambiamos el archivo de tray que actualmente se este
+  /// trabajando por el indicado por parametro
+  static Future<File?> cambiamosFileDeTrabajo(
+    String currentFileProcess, String fileCamp,
+  ) async {
+
+    File? fileW;
+    const pfx = ScmPaths.prefixFldWrk;
+    bool findWk = false;
+    // Renombramos el archivo actual que se esta trabajando.
+    // quitandoles el prefijo de _wk_
+    if(currentFileProcess.isNotEmpty) {
+      fileW = File(currentFileProcess);
+      if(fileW.existsSync()) {
+        final newPath = currentFileProcess.replaceFirst(pfx, '');
+        fileW.renameSync(newPath);
+        findWk = true;
+      }
+    }
+
+    // Si no encontramos el archivo de trabajo actual lo buscamos uno a uno
+    if(!findWk) {
+      final dirTray = GetPaths.getPathsFolderTo(GetContentFile.getFolder(FoldStt.tray));
+      if(dirTray != null) {
+        if(dirTray.existsSync()) {
+          final hasF = dirTray.listSync().toList();
+          for (var i = 0; i < hasF.length; i++) {
+            if(hasF[i].path.contains(pfx)){
+              final newPath = hasF[i].path.replaceFirst(pfx, '');
+              hasF[i].renameSync(newPath);
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // El archivo ques se envia como nueva campaña le ponemos el
+    // prefijo de trabajo _wk_
+    fileW = null;
+    if(fileCamp.isNotEmpty) {
+      final base = GetPaths.getPathsFolderTo(
+        GetContentFile.getFolder(FoldStt.tray)
+      );
+      if(base != null) {
+        final s = ScmPaths.getSep();
+        fileW = File('${base.path}$s$fileCamp');
+        if(fileW.existsSync()) {
+          fileCamp = ScmPaths.setPrefixWorking(fileCamp, isPath: false);
+          fileW = fileW.renameSync('${base.path}$s$fileCamp');
+        }
+      }
+    }
+
+    return fileW;
   }
 
   /// Guardamos el log en el archivo del mensaje en proceso

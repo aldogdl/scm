@@ -40,7 +40,7 @@ class TargetPage extends StatelessWidget {
     late Widget child;
     switch (proc.src['class']) {
       case 'Ordenes':
-        child = TileTargetOrden(orden: OrdenEntity()..fromJson(proc.target));
+        child = TileTargetOrden(orden: OrdenEntity()..fromJson(proc.data));
         break;
       default:
         child = const SinData(

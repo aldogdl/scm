@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'layout_page.dart';
+import 'login_page.dart';
 import '../providers/socket_conn.dart';
 import '../providers/process_provider.dart';
-import '../vars/mis_rutas.dart';
 import '../widgets/texto.dart';
 
 class ReloadHome extends StatelessWidget {
@@ -79,57 +78,59 @@ class ReloadHome extends StatelessWidget {
   Future<void> _deternimarAccion(BuildContext context, String accion) async {
 
     final proc = context.read<ProcessProvider>();
-    if(accion.isEmpty){ return; }
+    proc.currentFileReveiver = '';
+    await proc.buscamosCampaniaPrioritaria();
+    // if(accion.isEmpty){ return; }
 
-    if(!context.read<SocketConn>().isLoged) {
-      _login(context);
-    }
-    if(accion.toLowerCase().contains('autenticarte')) {
-      _login(context);
-      return;
-    }
+    // if(!context.read<SocketConn>().isLoged) {
+    //   _login(context);
+    // }
+    // if(accion.toLowerCase().contains('autenticarte')) {
+    //   _login(context);
+    //   return;
+    // }
 
-    if(accion.startsWith('->')) {
-      // -> indica mostrar solo mensjaes, sin accion
-      return;
-    }
+    // if(accion.startsWith('->')) {
+    //   // -> indica mostrar solo mensjaes, sin accion
+    //   return;
+    // }
 
-    if(accion.toLowerCase().contains('recargando')) {
-      _reload(context);
-      return;
-    }
+    // if(accion.toLowerCase().contains('recargando')) {
+    //   _reload(context);
+    //   return;
+    // }
 
-    if(accion.toLowerCase().contains('bienvenid')) {
+    // if(accion.toLowerCase().contains('bienvenid')) {
       
-      Future.delayed(const Duration(milliseconds: 1500), () async {
-        proc.clean();
-        proc.reloadMsgAcction = 'Buscando Capañas Prioritarias';
-      });
-      return;
-    }
+    //   Future.delayed(const Duration(milliseconds: 1500), () async {
+    //     proc.clean();
+    //     proc.reloadMsgAcction = 'Buscando Capañas Prioritarias';
+    //   });
+    //   return;
+    // }
 
-    if(accion.toLowerCase().contains('priori')) {
-      await _searchMsgPrioritario(proc);
-      return;
-    }
+    // if(accion.toLowerCase().contains('priori')) {
+    //   await _searchMsgPrioritario(proc);
+    //   return;
+    // }
   }
 
   ///
   void _login(BuildContext context) {
-    
-    Future.delayed(const Duration(milliseconds: 3000), () {
-      context.read<ProcessProvider>().cleanReloadMsgAcction();
-      context.goNamed(Rname.login.name);
-    });
+
+    context.read<ProcessProvider>().cleanReloadMsgAcction();
+    MaterialPageRoute(
+      builder: (_) => const LoginPage()
+    );
   }
 
   ///
   void _reload(BuildContext context) {
 
-    Future.delayed(const Duration(milliseconds: 1000), () {
-      context.read<ProcessProvider>().cleanReloadMsgAcction();
-      context.goNamed(Rname.home.name);
-    });
+    context.read<ProcessProvider>().cleanReloadMsgAcction();
+    MaterialPageRoute(
+      builder: (_) => const ReloadHome()
+    );
   }
 
   ///

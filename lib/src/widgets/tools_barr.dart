@@ -252,7 +252,7 @@ class ToolsBarr extends StatelessWidget {
 
     procProv.stopAllCrones();
     procProv.isPause = true;
-    procProv.cambiarDeCampaing();
+    procProv.cleanCampaingCurrent();
     procProv.reloadMsgAcction = 'Revisando prioridades';
     context.pop();
   }

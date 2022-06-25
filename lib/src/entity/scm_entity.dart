@@ -5,30 +5,43 @@ import 'package:scm/src/entity/contacts_entity.dart';
 class ScmEntity {
 
   int intents = 0;
-  /// El idCamp es el id del mensaje en si BD. scm_camp
   int idCamp = 0;
-  bool forceNotSend = false;
-  /// Nombre del Archivo
-  String nFile = '';
-  /// El path a los datos de este receptor
-  String data = '';
   int idReceiver = 0;
-  List<int> nextReceivers = [];
+  String curc = '';
+  String nombre = '';
+  bool forceNotSend = false;
+  /// El path del archivo principal contenedor de los datos del msg
+  String data = '';
   ContactEntity receiver = ContactEntity();
   List<String> errores = [];
 
   ///
-  void init(Map<String, dynamic> json, {int idCampaing = 0}) {
+  void fromCampaing(int idCampaing, String pathData, Map<String, dynamic> receptor) {
 
     intents = 0;
     idCamp = idCampaing;
-    nFile = json['nFile'];
-    data = json['data'];
-    idReceiver = json['idReceiver'];
-    nextReceivers = json['nextReceivers'];
+    idReceiver = receptor['c_id'];
+    curc = receptor['c_curc'];
+    nombre = receptor['c_nombre'];
     forceNotSend = false;
-    receiver = ContactEntity();
-    errores = <String>[];
+    data = pathData;
+    receiver = ContactEntity()..fromServer(receptor);
+    errores = [];
+  }
+
+  ///
+  void fromProvider(Map<String, dynamic> json) {
+
+    intents = json['intents'];
+    idCamp = json['idCamp'];
+    idReceiver = json['idReceiver'];
+    curc = json['curc'];
+    nombre = json['nombre'];
+    forceNotSend = (!json.containsKey('forceNotSend'))
+      ? false : json['forceNotSend'];
+    data = json['data'];
+    receiver = ContactEntity()..fromReceiver(json['receiver']);
+    errores = List<String>.from(json['errores']);
   }
 
   ///
@@ -36,12 +49,12 @@ class ScmEntity {
 
     intents = json['intents'];
     idCamp = json['idCamp'];
+    idReceiver = json['idReceiver'];
+    curc = json['curc'];
+    nombre = json['nombre'];
     forceNotSend = (!json.containsKey('forceNotSend'))
       ? false : json['forceNotSend'];
-    nFile = json['nFile'];
     data = json['data'];
-    idReceiver = json['idReceiver'];
-    nextReceivers = List<int>.from(json['nextReceivers']);
     receiver = ContactEntity()..fromJson(json['receiver']);
     errores = List<String>.from(json['errores']);
   }
@@ -52,10 +65,10 @@ class ScmEntity {
     return {
       'intents': intents,
       'idCamp': idCamp,
-      'nFile': nFile,
-      'data': data,
       'idReceiver': idReceiver,
-      'nextReceivers': nextReceivers,
+      'curc': curc,
+      'nombre': nombre,
+      'data': data,
       'receiver': receiver.toReceiver(),
       'errores': errores,
     };

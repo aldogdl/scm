@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:scm/src/pages/login_page.dart';
+import 'package:scm/src/pages/reload_home.dart';
 
 import 'src/services/puppetter/providers/browser_provider.dart';
 import 'src/providers/process_provider.dart';
 import 'src/providers/socket_conn.dart';
 import 'src/config/sng_manager.dart';
-import 'src/vars/mis_rutas.dart';
 
 void main() async {
 
@@ -50,9 +51,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     
-    final router = MyRutas.get();
+    final routerKey = GlobalKey<NavigatorState>();
 
-    return MaterialApp.router(
+    return MaterialApp(
       title: 'SCM',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -69,9 +70,27 @@ class MyApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate
       ],
       supportedLocales: const [ Locale('es', 'ES') ],
-      routeInformationProvider: router.routeInformationProvider,
-      routeInformationParser: router.routeInformationParser,
-      routerDelegate: router.routerDelegate,
+      navigatorKey: routerKey,
+      home: const BuildContextGral(),
+    );
+  }
+}
+
+class BuildContextGral extends StatelessWidget {
+
+  const BuildContextGral({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+
+    return Overlay(
+      initialEntries: [
+        OverlayEntry(
+          builder: (ctxTwo) => (!ctxTwo.watch<SocketConn>().isLoged)
+          ? const LoginPage()
+          : const ReloadHome()
+        )
+      ],
     );
   }
 }

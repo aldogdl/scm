@@ -4,6 +4,9 @@ class CampaingEntity {
   String titulo = '';
   String despec = '';
   int priority = 0;
+  String slug = '';
+  String msgTxt = '';
+  bool isConFilt = true;
 
   ///
   void fromJson(Map<String, dynamic> json) {
@@ -12,6 +15,9 @@ class CampaingEntity {
     titulo = json['titulo'];
     despec = json['despec'];
     priority = json['priority'];
+    slug = json['slug'];
+    msgTxt = json['msgTxt'];
+    isConFilt = json['isConFilt'];
   }
 
   ///
@@ -21,7 +27,10 @@ class CampaingEntity {
       'id': id,
       'titulo': titulo,
       'despec': despec,
-      'priority': priority
+      'priority': priority,
+      'slug': slug,
+      'msgTxt': msgTxt,
+      'isConFilt': isConFilt
     };
   }
 
@@ -31,7 +40,8 @@ class CampaingEntity {
     return {
       'id': id,
       'titulo': titulo,
-      'priority': priority
+      'priority': priority,
+      'slug': slug
     };
   }
 

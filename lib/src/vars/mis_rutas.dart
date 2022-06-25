@@ -10,7 +10,7 @@ enum Rname { login, home, reload, clean }
 class MyRutas {
 
   ///
-  static const Map<Rname, String> _pathStr = {
+  static const Map<Rname, String> pathStr = {
     Rname.clean : '/',
     Rname.home : '/home',
     Rname.login : '/login',
@@ -21,24 +21,25 @@ class MyRutas {
   static GoRouter get() {
 
     return GoRouter(
+      initialLocation: pathStr[Rname.clean]!,
       routes: <GoRoute>[
         GoRoute(
-          path: _pathStr[Rname.clean]!,
+          path: pathStr[Rname.clean]!,
           name: Rname.clean.name,
           builder: (BuildContext context, GoRouterState state) => const ReloadHome(),
         ),
         GoRoute(
-          path: _pathStr[Rname.home]!,
+          path: pathStr[Rname.home]!,
           name: Rname.home.name,
           builder: (BuildContext context, GoRouterState state) => const HomePage(),
         ),
         GoRoute(
-          path: _pathStr[Rname.login]!,
+          path: pathStr[Rname.login]!,
           name: Rname.login.name,
           builder: (BuildContext context, GoRouterState state) => const LoginPage(),
         ),
         GoRoute(
-          path: _pathStr[Rname.reload]!,
+          path: pathStr[Rname.reload]!,
           name: Rname.reload.name,
           builder: (BuildContext context, GoRouterState state) => const ReloadHome(),
         ),

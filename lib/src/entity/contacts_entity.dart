@@ -3,7 +3,6 @@ class ContactEntity {
 
   int id = 0;
   String curc = '';
-  List<String> roles = [];
   String nombre = '0';
   String cargo = '0';
   String celular = '0';
@@ -17,11 +16,18 @@ class ContactEntity {
   String latLng = '0';
 
   ///
+  void fromReceiver(Map<String, dynamic> json) {
+    cargo = json['cargo'];
+    celular = json['celular'];
+    idE = json['idE'];
+    empresa = json['empresa'];
+  }
+
+  ///
   void fromJson(Map<String, dynamic> json) {
   
     id = json['id'];
     curc = json['curc'];
-    roles = List<String>.from(json['roles']);
     nombre = json['nombre'];
     cargo = (json['cargo'].isEmpty) ? '0' : json['cargo'];
     celular = json['celular'];
@@ -57,18 +63,12 @@ class ContactEntity {
     
     id = json['c_id'];
     curc = json['c_curc'];
-    roles = List<String>.from(json['c_roles']);
     nombre = json['c_nombre'];
-    isCot = json['c_isCot'];
     cargo = json['c_cargo'];
     celular = json['c_celular'];
+    isLocal = json['e_isLocal'];
     idE = json['e_id'];
     empresa = json['e_nombre'];
-    domicilio = json['e_domicilio'];
-    cp = json['e_cp'];
-    isLocal = json['e_isLocal'];
-    telFijo = json['e_telFijo'];
-    latLng = json['e_latLng'];
   }
 
   ///
@@ -86,12 +86,9 @@ class ContactEntity {
   Map<String, dynamic> toReceiver() {
 
     return {
-      'id': id,
-      'curc': curc,
-      'nombre': nombre,
       'cargo': cargo,
       'celular': celular,
-      'roles': roles,
+      'idE': idE,
       'empresa': empresa,
     };
   }
@@ -102,7 +99,6 @@ class ContactEntity {
     return {
       'id': id,
       'curc': curc,
-      'roles': roles,
       'nombre': nombre,
       'cargo': cargo,
       'celular': celular,

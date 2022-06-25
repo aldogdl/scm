@@ -150,15 +150,12 @@ class _AwaitColaState extends State<AwaitCola> {
                 txtC: const Color.fromARGB(255, 149, 151, 243)
               )
             ),
-            if(receiver.receiver.id == _proc.idCurrenProcesando)
-              ...[
-                const Spacer(),
-                Texto(
-                  txt: (context.watch<ProcessProvider>().isPause)
-                    ? 'En Pausa' : 'Enviando...', sz: 12,
-                  txtC: const Color.fromARGB(255, 145, 255, 0)
-                )
-              ]
+            const Spacer(),
+            Texto(
+              txt: (context.watch<ProcessProvider>().isPause)
+                ? 'En Pausa' : 'Enviando...', sz: 12,
+              txtC: const Color.fromARGB(255, 145, 255, 0)
+            )
           ],
         ),
         Divider(color: Colors.grey.withOpacity(0.5),)
@@ -255,18 +252,18 @@ class _AwaitColaState extends State<AwaitCola> {
     await Future.delayed(const Duration(milliseconds: 500));
     
     var fileContent = await GetContentFile.getContentByFileAndFolder(
-      fileName: _proc.receiversCola[i].nFile, folder: FoldStt.wait
+      fileName: _proc.receiversCola[i].data, folder: FoldStt.wait
     );
 
     if(fileContent.isEmpty) {
       // Probamos con el sufijo de -main-
-      String fileN = _proc.receiversCola[i].nFile;
+      String fileN = _proc.receiversCola[i].data;
       fileN = fileN.replaceFirst(_fileS.suf, _fileS.sufM);
       fileContent = await GetContentFile.getContentByFileAndFolder(
         fileName: fileN, folder: FoldStt.wait
       );
       if(fileContent.isNotEmpty) {
-        _proc.receiversCola[i].nFile = fileN;
+        _proc.receiversCola[i].data = fileN;
       }
     }
     
@@ -284,7 +281,7 @@ class _AwaitColaState extends State<AwaitCola> {
     if(_idCurrenProc == -1) {
 
       final arranque = _proc.receiversCola.firstWhere(
-        (element) => element.nFile.contains(_fileS.sufM),
+        (element) => element.data.contains(_fileS.sufM),
         orElse: () => ScmEntity()
       );
 

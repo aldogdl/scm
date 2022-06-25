@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:scm/src/providers/process_provider.dart';
 
@@ -63,30 +62,16 @@ class _StatusBarrState extends State<StatusBarr> {
       children: [
         if(isLoged)
           _btnIcon(tip: 'Cerrar Sesión', icono: Icons.logout, fnc: () {
-            context.read<SocketConn>().cerrarConection();
-            context.read<SocketConn>().isLoged = false;
+            final sock = context.read<SocketConn>();
+            sock.cerrarConection();
             final crones = context.read<ProcessProvider>();
             crones.stopAllCrones();
-            context.pop();
-            crones.reloadMsgAcction = 'Hasta pronto. Gracias por usar el SCM';
+            sock.isLoged = false;
           }),
           const Spacer(),
           _btnTxt(
             label: 'Desde: ${fecha['mini']}',
             fnc: (){}
-          ),
-          Selector<ProcessProvider, int>(
-            selector: (_, provi) => provi.nRevRm,
-            builder: (_, cant, __) {
-
-              return _btnIconAndTxt(
-                icono: (cant.isEven)
-                ? Icons.public : Icons.remove_red_eye_outlined,
-                txt: '$cant',
-                tip: 'Número de Revisión Remota',
-                fnc: (){}
-              );
-            },
           ),
           const SizedBox(width: 10),
           Selector<ProcessProvider, int>(

@@ -1,6 +1,5 @@
-import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
+import 'dart:convert';
 import 'package:path/path.dart' as p;
 
 import '../config/sng_manager.dart';
@@ -171,22 +170,9 @@ class GetPaths {
   }
 
   ///
-  static String getNextPortadas() {
+  static Future<String> getApiHarbi(String uri, String ipHarbi) async {
 
-    Random rnd = Random();
-    File paths = File('${getPathRoot()}${getSep()}$nameFilePathsP');
-    if(paths.existsSync()) {
-      Map<String, dynamic> content = json.decode(paths.readAsStringSync());
-      
-      if(content.containsKey('portadas')) {
-        int has = content['portadas'].length;
-        int fnum = rnd.nextInt(has);
-        if(content['portadas'].containsKey('$fnum')) {
-          return content['portadas']['$fnum'];
-        }
-      }
-    }
-    return 'C:\\Users\\devfull\\AppData\\Roaming\\com.autoparnet\\portadas\\1.jpg';
+    Map<String, dynamic> uriPath = await _getFromFilePathsProd(uri);
+    return 'http://$ipHarbi${uriPath['uri']}/';
   }
-
 }

@@ -68,8 +68,6 @@ class _MsgCurrentState extends State<MsgCurrent> {
   ///
   Widget _elMensaje() {
 
-    final msg = _proc.getMensajeFormated();
-
     return Container(
       constraints: BoxConstraints(
         minWidth: appWindow.size.width,
@@ -86,15 +84,14 @@ class _MsgCurrentState extends State<MsgCurrent> {
         color: const Color.fromARGB(255, 224, 224, 224).withOpacity(0.65)
       ),
       child: ListView.builder(
-        itemCount: msg.length,
+        itemCount: _proc.msgCurrent.length,
         itemBuilder: (_, int i) {
 
-          if(msg[i].contains('_sp_')) {
+          if(_proc.msgCurrent[i].contains('_sp_')) {
             return const SizedBox(height: 5);
           }else{
-
             return Texto(
-              txt: msg[i], txtC: const Color.fromARGB(255, 43, 43, 43)
+              txt: _proc.msgCurrent[i], txtC: const Color.fromARGB(255, 43, 43, 43)
             );
           }
         },

@@ -448,9 +448,9 @@ class _SendToReceiverState extends State<SendToReceiver> {
       BrowserTask.comparaCon = _getListTxtToCompare(
         isContac: (_msgC.isNotEmpty) ? true : false
       );
-      List<String> msgSend = (_msgC.isNotEmpty)
-        ? _msgC : _proc.getMensajeFormated();
-
+      // List<String> msgSend = (_msgC.isNotEmpty)
+      //   ? _msgC : _proc.getMensajeFormated();
+      List<String> msgSend = [];
       BrowserTask.escribirMsg(msgSend)
       .listen((event) async {
 
@@ -528,12 +528,12 @@ class _SendToReceiverState extends State<SendToReceiver> {
     for (var i = 0; i < items.length; i++) {
       toCompare.add(items[i].trim());
     }
-    if(_proc.enProceso.target.containsKey('marca')) {
-      items = _proc.enProceso.target['marca']['nombre'].toString().toLowerCase().split(' ');
+    if(_proc.enProceso.data.containsKey('marca')) {
+      items = _proc.enProceso.data['marca']['nombre'].toString().toLowerCase().split(' ');
       for (var i = 0; i < items.length; i++) {
         toCompare.add(items[i].trim());
       }
-      items = _proc.enProceso.target['modelo']['nombre'].toString().toLowerCase().split(' ');
+      items = _proc.enProceso.data['modelo']['nombre'].toString().toLowerCase().split(' ');
       for (var i = 0; i < items.length; i++) {
         toCompare.add(items[i].trim());
       }
@@ -626,7 +626,7 @@ class _SendToReceiverState extends State<SendToReceiver> {
         bool isFine = await _proc.setSendedInDB(scm);
         if(isFine) {
           _proc.reloadMsgAcction = '-> COLOCANDO EN ENVIADOS';
-          await _cambiarDeFolder(scm.nFile, FoldStt.sended);
+          await _cambiarDeFolder(scm.data, FoldStt.sended);
           _skeepToNextReceiver(scm);
         }else{
           _proc.reloadMsgAcction = '-> ERROR, NO SE GUARDÓ EN DB.';
@@ -681,9 +681,9 @@ class _SendToReceiverState extends State<SendToReceiver> {
   ///
   Future<void> _updateDataMain(ScmEntity scm) async {
 
-    _proc.enProceso.toSend.remove(scm.idReceiver);
-    _proc.enProceso.noSend.remove(scm.idReceiver);
-    _proc.enProceso.sended.add(scm.idReceiver);
+    _proc.enProceso.toSend.remove(_proc.currentFileReveiver);
+    _proc.enProceso.noSend.remove(_proc.currentFileReveiver);
+    _proc.enProceso.sended.add(_proc.currentFileReveiver);
 
     await GetContentFile.updateSendersInFileData(
       {
@@ -699,13 +699,12 @@ class _SendToReceiverState extends State<SendToReceiver> {
   /// desde el mensaje actual.
   String _buildNextFile(ScmEntity scm) {
 
-    if(scm.nextReceivers.isEmpty){ return ''; }
+    
     final fileS = ScmFile();
     // cambiamos el main por el child
-    String nextF = scm.nFile.replaceFirst(fileS.sufM, fileS.suf);
+    String nextF = scm.data.replaceFirst(fileS.sufM, fileS.suf);
     final from = '${fileS.sF}${scm.idReceiver}${fileS.sF}';
-    final to = '${fileS.sF}${scm.nextReceivers.first}${fileS.sF}';
-    nextF = nextF.replaceFirst(from, to);
+    nextF = nextF.replaceFirst(from, '');
     return nextF;
   }
 
@@ -715,14 +714,14 @@ class _SendToReceiverState extends State<SendToReceiver> {
     _skeepToNext = true;
     _prepareNext.value = true;
     _proc.reloadMsgAcction = '-> REGISTRANDO ERROR';
-    bool echo = await GetContentFile.saveData(scm.nFile, FoldStt.wait, scm.toJson());
+    bool echo = await GetContentFile.saveData(scm.data, FoldStt.wait, scm.toJson());
     if(!echo) {
-      final fileMain = scm.nFile.replaceFirst(_fileS.suf, _fileS.sufM);
+      final fileMain = scm.data.replaceFirst(_fileS.suf, _fileS.sufM);
       echo = await GetContentFile.saveData(fileMain, FoldStt.wait, scm.toJson());
     }
     bool isFine = await _proc.setSendedInDB(scm, stt: 'p');
     if(isFine) {
-      await _cambiarDeFolder(scm.nFile, FoldStt.drash);
+      await _cambiarDeFolder(scm.data, FoldStt.drash);
       _skeepToNextReceiver(scm);
     }else{
       _proc.reloadMsgAcction = '-> ERROR, NO SE GUARDÓ EN DB.';
@@ -773,9 +772,9 @@ class _SendToReceiverState extends State<SendToReceiver> {
       }
 
       if(partes[i].contains('_auto_')){
-        String auto = _proc.enProceso.target['modelo']['nombre'];
-        auto = '$auto ${_proc.enProceso.target['anio']}';
-        auto = '$auto de ${_proc.enProceso.target['marca']['nombre']}';
+        String auto = _proc.enProceso.data['modelo']['nombre'];
+        auto = '$auto ${_proc.enProceso.data['anio']}';
+        auto = '$auto de ${_proc.enProceso.data['marca']['nombre']}';
         partes[i] = partes[i].replaceAll('_auto_', auto);
       }
     }
@@ -820,7 +819,6 @@ class _SendToReceiverState extends State<SendToReceiver> {
 
     //  Marcar el archivo principal de la data del msg como sended_
     await GetContentFile.putFileDataWorkingAsSended(scm);
-    _proc.cambiarDeCampaing();
     await _proc.buscamosCampaniaPrioritaria(onlyCheck: true);
     // if(mounted) {
     //   _proc.reloadMsgAcction = '-> LISTO Y EN ESPERA...';
