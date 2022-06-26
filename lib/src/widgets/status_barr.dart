@@ -1,38 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:scm/src/providers/process_provider.dart';
 
 import 'texto.dart';
 import '../services/my_utils.dart';
-import '../config/sng_manager.dart';
+import '../providers/process_provider.dart';
 import '../providers/socket_conn.dart';
-import '../vars/globals.dart';
 
-final Globals _globals = getSngOf<Globals>();
+class StatusBarr extends StatelessWidget {
 
-class StatusBarr extends StatefulWidget {
-
-  const StatusBarr({Key? key}) : super(key: key);
-
-  @override
-  State<StatusBarr> createState() => _StatusBarrState();
-}
-
-class _StatusBarrState extends State<StatusBarr> {
-
-  bool _isInit = false;
-  late final Map<String, dynamic> fecha;
+  final Color bgOff;
+  final Color bgOn;
+  const StatusBarr({
+    Key? key,
+    required this.bgOff,
+    required this.bgOn,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-
-    if(!_isInit) {
-      _isInit = true;
-      fecha = MyUtils.getFecha(
-        fecha: context.read<ProcessProvider>().initRR
-      );
-    }
-
     
     return Selector<SocketConn, bool>(
       selector: (_, provi) => provi.isLoged,
@@ -43,30 +28,32 @@ class _StatusBarrState extends State<StatusBarr> {
           padding: const EdgeInsets.symmetric(horizontal: 10),
           height: 25,
           decoration: BoxDecoration(
-            color: (isLoged)
-              ? _globals.sttBarrColorOn
-              : _globals.sttBarrColorOff
+            color: (isLoged) ? bgOn : bgOff
           ),
-          child: _body(isLoged),
+          child: _body(context, isLoged),
         );
       },
     );
   }
 
   ///
-  Widget _body(bool isLoged) {
+  Widget _body(BuildContext context, bool isLoged) {
+
+    final proc = context.read<ProcessProvider>();
+    final fecha = MyUtils.getFecha(fecha: proc.initRR);
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         if(isLoged)
-          _btnIcon(tip: 'Cerrar Sesión', icono: Icons.logout, fnc: () {
-            final sock = context.read<SocketConn>();
-            sock.cerrarConection();
-            final crones = context.read<ProcessProvider>();
-            crones.stopAllCrones();
-            sock.isLoged = false;
+          _btnIcon(tip: 'Cerrar Sesión',
+            icono: Icons.logout,
+            fnc: () {
+              final sock = context.read<SocketConn>();
+              proc.cerrarSesion();
+              sock.cerrarConection();
+              sock.isLoged = false;
           }),
           const Spacer(),
           _btnTxt(
@@ -74,30 +61,19 @@ class _StatusBarrState extends State<StatusBarr> {
             fnc: (){}
           ),
           const SizedBox(width: 10),
-          Selector<ProcessProvider, int>(
-            selector: (_, provi) => provi.timer,
-            builder: (_, cant, __) {
-              return _btnIconAndTxt(
-                icono: (cant.isOdd)
-                ? Icons.remove_red_eye_outlined : Icons.maximize_outlined,
-                txt: '$cant',
-                tip: 'Número de Revisión Local',
-                fnc: (){}
-              );
-            },
+          _btnIconAndTxt(
+            icono: (context.watch<ProcessProvider>().timer.isOdd)
+            ? Icons.remove_red_eye_outlined : Icons.maximize_outlined,
+            txt: '${context.watch<ProcessProvider>().timer}',
+            tip: 'Número de Revisión Local / ${proc.cadaL} Seg.',
+            fnc: (){}
           ),
-          Selector<ProcessProvider, int>(
-            selector: (_, provi) => provi.timerS,
-            builder: (_, cant, __) {
-              return _btnIconAndTxt(
-                isReverse: true,
-                icono: (cant.isEven)
-                ? Icons.remove_red_eye_outlined : Icons.maximize_outlined,
-                txt: '$cant',
-                tip: 'Número de Revisión al Stage',
-                fnc: (){}
-              );
-            },
+          _btnIconAndTxt(
+            icono: (context.watch<ProcessProvider>().timerS.isEven)
+            ? Icons.remove_red_eye_outlined : Icons.maximize_outlined,
+            txt: '${context.watch<ProcessProvider>().timerS}',
+            tip: 'Número de Revisión al Stage / ${proc.cadaS} Seg.',
+            fnc: (){}
           ),
       ],
     );
@@ -176,4 +152,5 @@ class _StatusBarrState extends State<StatusBarr> {
       )
     );
   }
+
 }

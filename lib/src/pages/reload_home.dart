@@ -78,41 +78,27 @@ class ReloadHome extends StatelessWidget {
   Future<void> _deternimarAccion(BuildContext context, String accion) async {
 
     final proc = context.read<ProcessProvider>();
-    proc.currentFileReveiver = '';
-    await proc.buscamosCampaniaPrioritaria();
-    // if(accion.isEmpty){ return; }
+    
+    if(accion.isEmpty){
+      if(proc.isStopAllCrones) {
+        proc.startAllCrones();
+      }
+      return;
+    }
 
-    // if(!context.read<SocketConn>().isLoged) {
-    //   _login(context);
-    // }
-    // if(accion.toLowerCase().contains('autenticarte')) {
-    //   _login(context);
-    //   return;
-    // }
+    if(!context.read<SocketConn>().isLoged) {
+      _login(context);
+    }
+    if(accion.toLowerCase().contains('autenticarte')) {
+      _login(context);
+      return;
+    }
 
-    // if(accion.startsWith('->')) {
-    //   // -> indica mostrar solo mensjaes, sin accion
-    //   return;
-    // }
+    if(accion.toLowerCase().contains('recargando')) {
+      _reload(context);
+      return;
+    }
 
-    // if(accion.toLowerCase().contains('recargando')) {
-    //   _reload(context);
-    //   return;
-    // }
-
-    // if(accion.toLowerCase().contains('bienvenid')) {
-      
-    //   Future.delayed(const Duration(milliseconds: 1500), () async {
-    //     proc.clean();
-    //     proc.reloadMsgAcction = 'Buscando Capañas Prioritarias';
-    //   });
-    //   return;
-    // }
-
-    // if(accion.toLowerCase().contains('priori')) {
-    //   await _searchMsgPrioritario(proc);
-    //   return;
-    // }
   }
 
   ///
@@ -133,10 +119,4 @@ class ReloadHome extends StatelessWidget {
     );
   }
 
-  ///
-  Future<void> _searchMsgPrioritario(ProcessProvider proc) async {
-
-    proc.reloadMsgAcction = '-> OBSERVANDO BANDEJA DE ENTRADA';
-    await proc.buscamosCampaniaPrioritaria();
-  }
 }

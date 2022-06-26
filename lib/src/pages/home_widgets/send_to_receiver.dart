@@ -649,8 +649,6 @@ class _SendToReceiverState extends State<SendToReceiver> {
         await GetContentFile.changeMsgFromChildToMain(filename: nextFile);
       }
       await _updateDataMain(scm);
-      _proc.reloadMsgAcction = '-> REVISANDO PRIORIDADES.';
-      await _proc.buscamosCampaniaPrioritaria(onlyCheck: true);
     }else{
       _proc.reloadMsgAcction = '-> FINALIZANDO ENVIO';
       await _updateDataMain(scm);
@@ -819,11 +817,6 @@ class _SendToReceiverState extends State<SendToReceiver> {
 
     //  Marcar el archivo principal de la data del msg como sended_
     await GetContentFile.putFileDataWorkingAsSended(scm);
-    await _proc.buscamosCampaniaPrioritaria(onlyCheck: true);
-    // if(mounted) {
-    //   _proc.reloadMsgAcction = '-> LISTO Y EN ESPERA...';
-    //   Routemaster.of(context).pop();
-    // }
   }
 
   ///

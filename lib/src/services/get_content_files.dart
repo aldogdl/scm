@@ -42,11 +42,15 @@ class GetContentFile {
   }) async {
 
     final res = await getPathFileWorking(folder: folder);
-    
     if(!res['has'] && res['uri'].isNotEmpty) {
       // Le ponemos el prefixo de trabajo, en caso de no estar ya enviado.
       if(!res['uri'].toString().contains(ScmPaths.prefixFldSended)) {
-        return ScmPaths.setPrefixWorking(res['uri']);
+        final newPath = ScmPaths.setPrefixWorking(res['uri']);
+        final file = File(res['uri']);
+        if(file.existsSync()) {
+          file.renameSync(newPath);
+        }
+        return newPath;
       }
     }
     if(!res['uri'].toString().contains(ScmPaths.prefixFldSended)) {
@@ -141,6 +145,7 @@ class GetContentFile {
   static Future<void> extraerReceptores(String pathWrk) async {
 
     Map<String, dynamic> content = await getMsgToMap(pathWrk);
+    print(content);
     if(content.isEmpty) return;
     if(!content['src'].containsKey('receivers')) {
       content['src']['receivers'] = [];

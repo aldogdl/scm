@@ -3,10 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 
 import '../../config/sng_manager.dart';
-import '../../entity/request_event.dart';
-import '../../providers/process_provider.dart';
 import '../../providers/socket_conn.dart';
-import '../../widgets/my_terminal_header.dart';
 import '../../widgets/titulo_seccion.dart';
 import '../../vars/globals.dart';
 import '../../widgets/checkbox_connection.dart';
@@ -93,7 +90,7 @@ class _ConfigPageState extends State<ConfigPage> {
           if(!_sock.isLoged)
             ..._sinLogged()
           else
-            ..._moreIfo()
+            ..._infoConn()
         ],
       ),
     );
@@ -138,26 +135,6 @@ class _ConfigPageState extends State<ConfigPage> {
   }
 
   ///
-  Widget _tileBtnAcc({
-    required IconData icon,
-    required String label,
-    required Function fnc
-  }) {
-
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5),
-        child: TextButton.icon(
-          icon: Icon(icon),
-          label: Texto(txt: label),
-          onPressed: () => fnc(),
-        ),
-      ),
-    );
-  }
-
-  ///
   List<Widget> _sinLogged() {
 
     return [
@@ -167,72 +144,6 @@ class _ConfigPageState extends State<ConfigPage> {
       const Texto(
         txt: 'Necesitas autenticarte para recabar más información',
         sz: 18, isCenter: true,
-      )
-    ];
-  }
-
-  ///
-  List<Widget> _moreIfo() {
-
-    if(_seccion == 'more') {
-      return _infoConn();
-    }else{
-      return _otros();
-    }
-  }
-
-  ///
-  List<Widget> _otros() {
-
-    return [
-      _tileBtnAcc(
-        icon: Icons.remove_red_eye,
-        label:  (!context.watch<ProcessProvider>().isStopedByUserFiles)
-        ? '[SCM] Detener Monitoreo  de Archivos'
-        : '[SCM] Re-Iniciar Monitoreo  de Archivos',
-        fnc: () => _stopWatchFiles(
-          context.read<ProcessProvider>()
-        ),
-      ),
-      _tileBtnAcc(
-        icon: Icons.cleaning_services_rounded,
-        label: '[HARBI] Limpiar Pantalla',
-        fnc: () => _harbiClsScreen()
-      ),
-      _tileBtnAcc(
-        icon: Icons.connect_without_contact,
-        label: '[HARBI] Ping ( Prueba de conexión )',
-        fnc: () => _harbiPing()
-      ),
-      const Spacer(),
-      Container(
-        width: appWindow.size.width,
-        height: MediaQuery.of(context).size.height * 0.15,
-        decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.6)
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            TerminalHeader(
-              showClose: false,
-              onViewCode: (_){},
-              onClean: (_) {
-                _sock.msgErr = '';
-              }
-            ),
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                child: Texto(
-                  txt: context.watch<SocketConn>().msgErr,
-                  txtC: Colors.blueGrey,
-                ),
-              )
-            )
-          ],
-        ),
       )
     ];
   }
@@ -291,16 +202,4 @@ class _ConfigPageState extends State<ConfigPage> {
     ];
   }
 
-  ///    
-  Future<void> _stopWatchFiles(ProcessProvider prov) async {
-    prov.isStopedByUserFiles = !prov.isStopedByUserFiles;
-  }
-
-  ///
-  void _harbiPing() async => _sock.sendPing('reping');
-
-  ///
-  void _harbiClsScreen() {
-    _sock.send(RequestEvent(event: 'cls', fnc: '', data: {}));
-  }
 }

@@ -68,7 +68,6 @@ class ProcessProvider extends ChangeNotifier {
   }
 
   DateTime initRR = DateTime.now();
-  Map<String, dynamic> lastResult = {};
 
   bool _terminalIsMini = true;
   bool get terminalIsMini => _terminalIsMini;
@@ -91,7 +90,7 @@ class ProcessProvider extends ChangeNotifier {
   }
 
   /// Para la página bacia que se usa para recargar ReloadPage()
-  String _reloadMsgAcction = 'Preparandome para Autenticarte';
+  String _reloadMsgAcction = '';
   String get reloadMsgAcction => _reloadMsgAcction;
   set reloadMsgAcction(String msg) {
     _reloadMsgAcction = msg;
@@ -124,32 +123,12 @@ class ProcessProvider extends ChangeNotifier {
     'files' : Cron(),
   };
   
-  String _extrayendoReceptoresOf = '';
-  bool _blockCheckLocal = false;
-  bool _blockCheckStage = false;
-  bool _isStopAllCrones = false;
-
-  ///
-  bool _isStopedByUserFiles = false;
-  bool get isStopedByUserFiles => _isStopedByUserFiles;
-  set isStopedByUserFiles(bool stop) {
-    _isStopedByUserFiles = stop;
-    if(stop) {
-      cron['files']!.close();
-      cron['stage']!.close();
-    }else{
-      initCronFolderLocal();
-      initCronFolderStage();
-    }
-    notifyListeners();
-  }
-
   /// El numero de veces que se hace una revisión
   /// a la carpeta de await
   int _timer = 0;
   int get timer => _timer;
-  void timerL(){
-    _timer++;
+  set timer(int inc){
+    _timer = _timer + inc;
     notifyListeners();
   }
 
@@ -157,12 +136,11 @@ class ProcessProvider extends ChangeNotifier {
   /// a la carpeta de stage
   int _timerS = 0;
   int get timerS => _timerS;
-  void timerSt(){
-    _timerS++;
-    //notifyListeners();
+  set timerS(int inc){
+    _timerS = _timerS + inc;
+    notifyListeners();
   }
 
-  
   /// [r] Bandeja Cantidad de campañas pendientes
   int _enTray = 0;
   int get enTray => _enTray;
@@ -259,32 +237,51 @@ class ProcessProvider extends ChangeNotifier {
     _msgCurrent = msg;
   }
 
+  ///
+  String _extrayendoReceptoresOf = '';
+  bool isStopAllCrones = true;
+  bool _isStopCronFles = true;
+  bool _isStopCronStage = true;
+
+  int cadaL = 3;
+  int cadaS = 10;
 
   //--------------------------- FUNCTIONS ----------------------------
   
-  
-  /// [?]
-  void stopAllCrones() async {
-    cron['stage']!.close();
-    cron['files']!.close();
-    _isStopedByUserFiles = true;
-    _isStopAllCrones = true;
-    await Future.delayed(const Duration(milliseconds: 3000));
-  }
-  
-  /// Detenemos los cron que revisan los folders excepto el del stage
-  bool _isStopCronFles = false;
+  /// [r] Detenemos los cron que revisan los folders excepto el
+  /// del stage
   Future<void> stopCronFiles() async {
     cron['files']!.close();
     _isStopCronFles = true;
     await Future.delayed(const Duration(milliseconds: 500));
   }
+  
+  /// [r] Detenemos los cron que revisan el folder stage
+  Future<void> stopCronStage() async {
+    cron['stage']!.close();
+    _isStopCronStage = true;
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
 
-  ///
+  /// [r]
+  Future<void> _stopAllCrones() async {
+    cron['stage']!.close();
+    cron['files']!.close();
+    isStopAllCrones = true;
+    _isStopCronStage = true;
+    _isStopCronFles = true;
+    await Future.delayed(const Duration(milliseconds: 3000));
+  }
+  
+  /// [r] Usado para arrancar por primera vez.
   void startAllCrones() async {
     
-    _isStopedByUserFiles = false;
-    _isStopAllCrones = false;
+    if(_reloadMsgAcction.isEmpty) {
+      _reloadMsgAcction = 'HOLA ${_globals.user.nombre}';
+    }
+    isStopAllCrones = false;
+    _isStopCronStage = false;
+    _isStopCronFles = false;
     initCronFolderStage();
     await Future.delayed(const Duration(milliseconds: 3000));
     initCronFolderLocal();
@@ -305,14 +302,14 @@ class ProcessProvider extends ChangeNotifier {
     _enProceso = ProcesoEntity();
     _receiverCurrent = ScmEntity();
   }
-  
-  ///
-  void clean() {
+
+  /// [r] Usado solo para cerrar sesion
+  Future<void> cerrarSesion() async {
+
+    cleanCampaingCurrent();
+    await _stopAllCrones();
     _isPause = false;
     _isTest = false;
-    _isStopedByUserFiles = false;
-    lastResult = {};
-    _enProceso = ProcesoEntity();
     _terminalIsMini = true;
     _taskTerminal = [];
     _enAwait = 0;
@@ -341,7 +338,7 @@ class ProcessProvider extends ChangeNotifier {
   /// 
   /// Por lo tanto solo se buscará en la carpeta de TRAY, en caso de haber una
   /// le ponemos el prefijo de trabajo y dejamos que el cron haga lo suyo
-  Future<void> buscamosCampaniaPrioritaria({bool onlyCheck = false}) async {
+  Future<void> buscamosCampaniaPrioritaria() async {
 
     if(currentFileReveiver.isNotEmpty) { return; }
 
@@ -360,6 +357,9 @@ class ProcessProvider extends ChangeNotifier {
         }else{
           if(!campas.first.path.contains(ScmPaths.prefixFldSended)) {
             filePriory = ScmPaths.extractNameFile(campas.first.path);
+            if(filePriory.contains(ScmPaths.prefixFldWrk)) {
+              filePriory = ScmPaths.removePrefixWork(filePriory, isPath: false);
+            }
           }
         }
 
@@ -383,10 +383,6 @@ class ProcessProvider extends ChangeNotifier {
           }
         }
       }
-    }
-
-    if(_isStopCronFles) {
-      await initCronFolderLocal();
     }
   }
 
@@ -437,6 +433,79 @@ class ProcessProvider extends ChangeNotifier {
     }
   }
 
+  /// [r] Revisamos si hay nuevos mensajes en la carpeta local
+  Future<void> initCronFolderLocal() async {
+
+    try {
+      cron['files']!.schedule(Schedule.parse('*/$cadaL * * * * *'), () async {
+        await _checkingFolderLocales();
+      });
+      _isStopCronFles = false;
+    } catch (e) {
+
+      if(e.toString().contains('Closed')) {
+        cron['files'] = Cron();
+        await Future.delayed(const Duration(milliseconds: 500));
+        initCronFolderLocal();
+      }
+    }
+  }
+
+  /// [r] Revisamos si hay nuevos mensajes en el Stage
+  void initCronFolderStage() {
+
+    try {
+      cron['stage']!.schedule(Schedule.parse('*/$cadaS * * * * *'), () async {
+        await _checkingFolderStage();
+      });
+    } catch (e) {
+
+      if(e.toString().contains('Closed')) {
+        cron['stage'] = Cron();
+        initCronFolderStage();
+      }
+    }
+  }
+
+  /// [r] Realizar el chequeo de archivos en la carpeta stage.
+  Future<void> _checkingFolderStage() async {
+
+    if(!_isStopCronStage) { await stopCronStage(); }
+    
+    String pathWrk = await GetContentFile.putWorkingIfAbsent(
+      folder: FoldStt.stage
+    );
+
+    if(pathWrk != _extrayendoReceptoresOf) {
+      _extrayendoReceptoresOf = pathWrk;
+      await GetContentFile.extraerReceptores(_extrayendoReceptoresOf);
+      _extrayendoReceptoresOf = '';
+    }
+
+    timerS = 1;
+    if(_isStopCronStage) {
+      _isStopCronStage = false;
+      initCronFolderStage();
+    }
+  }
+
+  /// [r] Realizar el chequeo de archivos en las carpetas de tray, await, sended y drash.  
+  /// Solo en la carpeta de tray hace trabajo en las demas solo nos da la cantidad de
+  /// archivos existentes.
+  Future<void> _checkingFolderLocales() async {
+
+    enAwait = await GetContentFile.getCantContentFilesByFolder(FoldStt.wait);
+    sended  = await GetContentFile.getCantContentFilesByFolder(FoldStt.sended);
+    papelera= await GetContentFile.getCantContentFilesByFolder(FoldStt.drash);
+    buscamosCampaniaPrioritaria().then((_) async {
+      timer = 1;
+      if(_isStopCronFles) {
+        _isStopCronFles = false;
+        await initCronFolderLocal();
+      }
+    });
+  }
+
   /// Guardamos el registro de mensaje enviado en las BDs
   Future<bool> setSendedInDB(ScmEntity scm, {String stt = 'i'}) async {
 
@@ -461,79 +530,6 @@ class ProcessProvider extends ChangeNotifier {
     return false;
   }
 
-  /// Revisamos si hay nuevos mensajes en la carpeta local
-  Future<void> initCronFolderLocal() async {
-
-    int cada = 3;
-    try {
-      cron['files']!.schedule(Schedule.parse('*/$cada * * * * *'), () async {
-        await _checkingFolderLocales();
-      });
-      _isStopCronFles = false;
-    } catch (e) {
-
-      if(e.toString().contains('Closed')) {
-        cron['files'] = Cron();
-        await Future.delayed(const Duration(milliseconds: 1000));
-        initCronFolderLocal();
-      }
-    }
-  }
-  
-  /// Realizar el chequeo de archivos en las carpetas de tray, await, sended y drash.
-  /// 
-  /// Solo en la carpeta de tray hace trabajo en las demas solo nos da la cantidad de
-  /// archivos existentes.
-  Future<void> _checkingFolderLocales() async {
-
-    if(_blockCheckLocal){ return; }
-    _blockCheckLocal = true;
-    
-    enAwait = await GetContentFile.getCantContentFilesByFolder(FoldStt.wait);
-    sended = await GetContentFile.getCantContentFilesByFolder(FoldStt.sended);
-    papelera = await GetContentFile.getCantContentFilesByFolder(FoldStt.drash);
-    await buscamosCampaniaPrioritaria();
-    timerL();
-    _blockCheckLocal = false;
-  }
-
-  /// [r] Revisamos si hay nuevos mensajes en el Stage
-  void initCronFolderStage() {
-
-    int cada = 10;
-
-    try {
-      cron['stage']!.schedule(Schedule.parse('*/$cada * * * * *'), () async {
-        await _checkingFolderStage();
-      });
-    } catch (e) {
-
-      if(e.toString().contains('Closed')) {
-        cron['stage'] = Cron();
-        cron['stage']!.schedule(Schedule.parse('*/$cada * * * * *'), () async {
-          await _checkingFolderStage();
-        });
-      }
-    }
-  }
-
-  /// [r] Realizar el chequeo de archivos en la carpeta stage.
-  Future<void> _checkingFolderStage() async {
-
-    if(_blockCheckStage) { return; }
-    _blockCheckStage = true;
-
-    String pathWrk = await GetContentFile.putWorkingIfAbsent(
-      folder: FoldStt.stage
-    );
-    if(pathWrk != _extrayendoReceptoresOf) {
-      _extrayendoReceptoresOf = pathWrk;
-      await GetContentFile.extraerReceptores(_extrayendoReceptoresOf);
-      _extrayendoReceptoresOf = '';
-    }
-    timerSt();
-    _blockCheckStage = false;
-  }
 
 }
 

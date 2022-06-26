@@ -250,9 +250,6 @@ class ToolsBarr extends StatelessWidget {
   ///
   void _refrezcarPagina(BuildContext context, ProcessProvider procProv) {
 
-    procProv.stopAllCrones();
-    procProv.isPause = true;
-    procProv.cleanCampaingCurrent();
     procProv.reloadMsgAcction = 'Revisando prioridades';
     context.pop();
   }
