@@ -19,40 +19,8 @@ class BrowserTask {
   /// Inyectamos el BrowserProvider a esta clase.
   static init(BrowserProvider wp) => _wp = wp;
 
-  ///
-  static Future<String> checarConectividad() async {
-
-    if(_wp.browser == null) {
-      return 'ALERTA<stop> No se ha inicializado el Navegador';
-    }
-    if(_wp.pagewa == null) {
-      return 'ALERTA<stop> Inicializa App web de Whatsapp';
-    }
-    if(_wp.pib == 0) {
-      return 'ALERTA<stop> No se inicializó correctamente el Navegador';
-    }
-    if(_wp.titleCurrent.isEmpty) {
-      return 'ALERTA<stop> No se ha inicializado la App web de Whatsapp';
-    }
-
-    String? select = mapConcep['bskContac']!['html'];
-    if(select != null) {
-      try {
-        pupp.ElementHandle? element = await _wp.pagewa!.waitForSelector(select);
-        if(element == null) {
-          return 'ERROR<stop> Ya no hay conexión con la App de Whatsapp';
-        }
-      } catch (e) {
-        return 'ERROR<stop> ${e.toString()}';
-      }
-    }
-    return '';
-  }
-
-  // Colocamos el foco en la caja de busqueda de chats
-  static Stream<String> buscarContacto({
-    String txt = '',
-  }) async* {
+  // [1] Colocamos el foco en la caja de busqueda de chats
+  static Stream<String> buscarContacto({String txt = ''}) async* {
 
     String ok = await checarConectividad();
     if(ok.isNotEmpty) {
@@ -90,113 +58,7 @@ class BrowserTask {
     yield '${lstErrs['bskContac']![1]}';
   }
 
-  /// Entramos al chat que se nos indica por parametro
-  static Stream<String> entrarAlChat(
-    String nombre, {bool isGrup = false, String? selector}
-  ) async* {
-
-    String? select = mapConcep['chatDeCtc']!['html'];
-    if(isGrup) {
-      select = mapConcep['chatDeGrupos']!['html'];
-    }
-
-    bool hasRes = false;
-    final chats = await _wp.pagewa!.$$(select!);
-    if(chats.isNotEmpty) {
-
-      for (var i = 0; i < chats.length; i++) {
-
-        String? nombreDelChat = await chats[i].evaluate<String>('node => node.innerText');
-        if(nombreDelChat != null) {
-          if(nombreDelChat == nombre) {
-            try {
-              await chats[i].click();
-              String corroborarChat = await _corroborarChat(nombre);
-              hasRes = true;
-              yield corroborarChat;
-            } catch (e) {
-              yield '${lstErrs['chatDeCtc']![0]}';
-            }              
-            break;
-          }
-        }
-      }
-    }
-    if(!hasRes) {
-      String msgE = '${lstErrs['chatDeCtc']![2]}';
-      msgE = msgE.replaceAll('_nombre_', nombre);
-      yield msgE;
-    }
-  }
-
-  /// Revisamos la existencia de la caja de busqueda dentro del chat y si
-  /// es encontrada escibimos el mesajes pasado por parametro.
-  static Stream<String> escribirMsg(List<String> msg) async* {
-
-    // Primero revisamos la existencia de la caja de texto.
-    String? select = mapConcep['writeMsg']!['html'];
-    bool hasErr = true;
-    String msgR = '';
-
-    if(select != null) {
-
-      pupp.ElementHandle? element = await _wp.pagewa!.waitForSelector(select);
-      try {
-        element = await _wp.pagewa!.$OrNull(select);
-      } catch (_) {}
-
-      if (element != null) {
-
-        const int veces = 3;
-        int intentos = 1;
-        for (var i = 0; i < veces; i++) {
-
-          String result = await _writeMensaje(element, msg);
-          if(result == 'ok'){
-            hasErr = false;
-            msgR = result;
-            break;
-          }
-
-          if(intentos >= veces) {
-            hasErr = false;
-            msgR = result;
-            break;
-          }
-          intentos++;
-        }
-      }else{
-        msgR = '${lstErrs['writeMsg']![0]}';
-      }
-    }
-    if(hasErr) {
-      msgR = '${lstErrs['writeMsg']![1]}';
-    }
-    yield msgR;
-  }
-
-  ///
-  static Future<String> sendMensaje() async {
-
-    String? select = mapConcep['btnSend']!['html'];
-    
-    if(select != null) {
-      pupp.ElementHandle? element = await _wp.pagewa!.waitForSelector(select);
-      try {
-        element = await _wp.pagewa!.$OrNull(select);
-      } catch (_) {}
-      if(element != null) {
-        await element.click();
-        await _wait(200);
-        return 'ok';
-      }else{
-        return '${lstErrs['btnSend']![0]}';
-      }
-    }
-    return '${lstErrs['btnSend']![1]}';
-  }
-
-  /// Escribimos en la caja de busqueda de contactos.
+  /// [2] Escribimos en la caja de busqueda de contactos.
   static Future<String> _writeBskContac(String txt, pupp.ElementHandle? element) async {
 
     String? select;
@@ -283,11 +145,50 @@ class BrowserTask {
     }else{
       return '${lstErrs['bskContac'][1]}';
     }
-    
   }
 
-  /// Corroboramos que estamos en el chat correcto
-  static Future<String> _corroborarChat(String nombre) async {
+  /// [3] Entramos al chat que se nos indica por parametro
+  static Stream<String> entrarAlChat(
+    String nombre, {bool isGrup = false, String? selector}
+  ) async* {
+
+    String? select = mapConcep['chatDeCtc']!['html'];
+    if(isGrup) {
+      select = mapConcep['chatDeGrupos']!['html'];
+    }
+
+    bool hasRes = false;
+    final chats = await _wp.pagewa!.$$(select!);
+    if(chats.isNotEmpty) {
+
+      for (var i = 0; i < chats.length; i++) {
+
+        String? nombreDelChat = await chats[i].evaluate<String>('node => node.innerText');
+        if(nombreDelChat != null) {
+          if(nombreDelChat == nombre) {
+            try {
+              await chats[i].click();
+              await _wait(500);
+              String isOkChat = await _isOkChat(nombre);
+              hasRes = true;
+              yield isOkChat;
+            } catch (e) {
+              yield '${lstErrs['chatDeCtc']![0]}';
+            }              
+            break;
+          }
+        }
+      }
+    }
+    if(!hasRes) {
+      String msgE = '${lstErrs['chatDeCtc']![2]}';
+      msgE = msgE.replaceAll('_nombre_', nombre);
+      yield msgE;
+    }
+  }
+
+  /// [4] Corroboramos que estamos en el chat correcto
+  static Future<String> _isOkChat(String nombre) async {
 
     String? select = mapConcep['titDelChat']!['html'];
     pupp.ElementHandle? element = await _wp.pagewa!.waitForSelector(select!);
@@ -303,10 +204,57 @@ class BrowserTask {
     return '${lstErrs['chatDeCtc']![1]}';
   }
 
-  ///
+  /// [5] Revisamos la existencia de la caja de busqueda dentro del chat y si
+  /// es encontrada escibimos el mesajes pasado por parametro.
+  static Stream<String> escribirMsg(List<String> msg) async* {
+
+    // Primero revisamos la existencia de la caja de texto.
+    String? select = mapConcep['writeMsg']!['html'];
+    bool hasErr = true;
+    String msgR = '';
+
+    if(select != null) {
+
+      pupp.ElementHandle? element = await _wp.pagewa!.waitForSelector(select);
+      try {
+        element = await _wp.pagewa!.$OrNull(select);
+      } catch (_) {}
+
+      if (element != null) {
+
+        const int veces = 3;
+        int intentos = 1;
+        for (var i = 0; i < veces; i++) {
+
+          String result = await _writeMensaje(element, msg);
+          if(result == 'ok'){
+            hasErr = false;
+            msgR = result;
+            break;
+          }
+
+          if(intentos >= veces) {
+            hasErr = false;
+            msgR = result;
+            break;
+          }
+          intentos++;
+        }
+      }else{
+        msgR = '${lstErrs['writeMsg']![0]}';
+      }
+    }
+    if(hasErr) {
+      msgR = '${lstErrs['writeMsg']![1]}';
+    }
+    yield msgR;
+  }
+
+  /// [6]
   static Future<String> _writeMensaje(pupp.ElementHandle element, List<String> msg) async {
 
     await element.click();
+    await _wait(500);
     var contenido = await element.evaluate<String>('node => node.innerText');
 
     if(contenido != null) {
@@ -354,6 +302,61 @@ class BrowserTask {
     }
   }
 
+  /// [7]
+  static Future<String> sendMensaje() async {
+
+    String? select = mapConcep['btnSend']!['html'];
+    
+    if(select != null) {
+      pupp.ElementHandle? element = await _wp.pagewa!.waitForSelector(select);
+      try {
+        element = await _wp.pagewa!.$OrNull(select);
+      } catch (_) {}
+      if(element != null) {
+        await element.click();
+        await _wait(500);
+        return 'ok';
+      }else{
+        return '${lstErrs['btnSend']![0]}';
+      }
+    }
+    return '${lstErrs['btnSend']![1]}';
+  }
+
+
+  // ------------------ FUNCTIONS ----------------------
+
+  
+  ///
+  static Future<String> checarConectividad() async {
+
+    if(_wp.browser == null) {
+      return 'ALERTA<stop> No se ha inicializado el Navegador';
+    }
+    if(_wp.pagewa == null) {
+      return 'ALERTA<stop> Inicializa App web de Whatsapp';
+    }
+    if(_wp.pib == 0) {
+      return 'ALERTA<stop> No se inicializó correctamente el Navegador';
+    }
+    if(_wp.titleCurrent.isEmpty) {
+      return 'ALERTA<stop> No se ha inicializado la App web de Whatsapp';
+    }
+
+    String? select = mapConcep['bskContac']!['html'];
+    if(select != null) {
+      try {
+        pupp.ElementHandle? element = await _wp.pagewa!.waitForSelector(select);
+        if(element == null) {
+          return 'ERROR<stop> Ya no hay conexión con la App de Whatsapp';
+        }
+      } catch (e) {
+        return 'ERROR<stop> ${e.toString()}';
+      }
+    }
+    return '';
+  }
+
   /// Extraemos el tipo de error
   static String getTipoDeError(String error) {
 
@@ -365,7 +368,7 @@ class BrowserTask {
   // Tiempo de espera publico.
   static Future<void> wait(int mili) async => await _wait(mili);
 
-  // Tiempo de espera.
+  // Tiempo de espera interno.
   static Future<void> _wait(int mili) async => await Future.delayed(
     Duration(milliseconds: mili)
   );
@@ -437,7 +440,7 @@ class BrowserTask {
         'task': 'Revisar Caja de Busqueda',
         'stt' : 0,
         'acc' : 'bskContac',
-        'sug' : 'No se encontró la caja de busqueda de contactos principal '
+        'sug' : 'No se encontró la caja de búsqueda de contactos principal '
         'Asegurate de que este visible para el SCM.'
       },
       {

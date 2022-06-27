@@ -3,7 +3,7 @@ import 'package:glass_kit/glass_kit.dart';
 import 'package:provider/provider.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 
-import 'home_widgets/msg_current.dart';
+import 'views/msg_current.dart';
 import 'views/config_page.dart';
 import 'views/await_page.dart';
 import 'views/sended_page.dart';
@@ -109,7 +109,7 @@ class LeftSide extends StatelessWidget {
       case 'msg':
         child = const MsgCurrent();
         break;
-      case 'target':
+      case 'targets':
         child = const TargetPage();
         break;
       case 'espera':

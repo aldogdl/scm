@@ -19,21 +19,6 @@ class GetContentFile {
     return 'scm_${fld.name}';
   }
 
-  ///
-  static Future<ScmFile?> getScmFileWorking({
-    FoldStt folder = FoldStt.tray
-  }) async {
-
-    ScmFile fileS = ScmFile();
-    final c = await GetContentFile.getContentFileWorking(folder: folder);
-    if(c.isNotEmpty) {
-      fileS.fromFileCampaing(c);
-      fileS.createNameFile();
-      return fileS;
-    }
-    return null;
-  }
-
   /// [r] Le colocamos el prefijo _wk_ al archivo que se encuentre en el
   /// stage, para que el cron lo tome y lo empiece a procesar.
   /// [RETURN] bacio en caso de no existir ningun archivo en la carpeta
@@ -101,15 +86,18 @@ class GetContentFile {
     return {'has': !isNew, 'uri': uri};
   }
 
-  /// Buscamos el archivo el cual estamos trabajando en la carpeta indicada
-  /// [RETURN] un Mapa en caso de existir.
-  static Future<Map<String, dynamic>> getContentFileWorking({required FoldStt folder}) async {
+  /// [r] Recuperamos la lista de archivos que se encuentran en
+  /// el folder especificado por parametro
+  static List<FileSystemEntity> getLstFilesByFolder(FoldStt folder) {
 
-    final pathWork = await getPathFileWorking(folder: folder);
-    if(pathWork['uri'].isNotEmpty) {
-      return await getMsgToMap(pathWork['uri']);
+    final dir = GetPaths.getPathsFolderTo(getFolder(folder));
+    if(dir != null) {
+      if(dir.existsSync()) {
+        final campas = dir.listSync();
+        return (campas.isEmpty) ? [] : campas;
+      }
     }
-    return {};
+    return [];
   }
 
   /// [r] Recuperamos el contenido del archivo indicado en la carpeta indicada
@@ -122,30 +110,12 @@ class GetContentFile {
     return getMsgToMap('${directory!.path}$sep$fileName');
   }
 
-  /// Le quitamos la seña de archivo trabajando y lo movemos al folder TRAY
-  /// y colocamos todos los paths necesarios al procesoEntity y al scmEntity
-  static Future<void> moveFileWorking({
-    required FoldStt from, required FoldStt to
-  }) async {
-
-    final pathStage = await getPathFileWorking(folder: from);
-    ScmFile fileS = ScmFile(pathOrigin: pathStage['uri']);
-    String pathTo = fileS.convertPathTo(to, pathStage['uri'], withoutWorking: true);
-
-    File fileContent = File(pathStage['uri']);
-    Map<String, dynamic> content = await getMsgToMap(pathStage['uri']);
-    fileContent.deleteSync();
-    fileContent = File(pathTo);
-    fileContent.writeAsStringSync( json.encode(content) );
-  }
-
   /// [r] Extraemos el siguiente remitente a cual se le enviará un mensaje desde
   /// el archivo principal de datos ubicado en el Stage y colocamos los extractos
   /// en la carpeta de AWAIT
   static Future<void> extraerReceptores(String pathWrk) async {
 
     Map<String, dynamic> content = await getMsgToMap(pathWrk);
-    print(content);
     if(content.isEmpty) return;
     if(!content['src'].containsKey('receivers')) {
       content['src']['receivers'] = [];
@@ -166,17 +136,6 @@ class GetContentFile {
       return;
     }
     return;
-  }
-
-  ///
-  static Future<Map<String, dynamic>> _extraerReceptoresAndPutAwait(
-    Map<String, dynamic> data, String pathFile
-  ) async {
-
-    // final receivers = List<int>.from(data['receivers']);
-    // final nextReceivers = List<int>.from(data['receivers']);
-    // TODO
-    return {};
   }
 
   /// [r] Buscamos y filtramos a todos los receptores que coinsidan con los
@@ -316,118 +275,8 @@ class GetContentFile {
   /// [r] Obtenemos la cantidad de archivos en el folder solicitado
   static Future<int> getCantContentFilesByFolder(FoldStt folder) async {
 
-    final fld = GetPaths.getPathsFolderTo(getFolder(folder));
-    if(fld != null) {
-      if(fld.existsSync()) {
-        final msgs = fld.listSync();
-        return msgs.length;
-      }
-    }
-    return 0;
-  }
-
-  ///
-  static Future<List<Map<String, dynamic>>> getAllCampaingsWithDataMini() async {
-
-    final fileS = ScmFile();
-    List<Map<String, dynamic>> lstCamps = [];
-    final dir = GetPaths.getPathsFolderTo(getFolder(FoldStt.tray));
-    if(dir != null) {
-      if(dir.existsSync()) {
-
-        final lstF = dir.listSync();
-        if(lstF.isNotEmpty) {
-          Map<String, dynamic> current = {};
-
-          for (var i = 0; i < lstF.length; i++) {
-            List<String> partes = lstF[i].path.split(GetPaths.getSep());
-            if(!partes.last.contains(fileS.prefixFldSended)) {
-
-              final proc = ProcesoEntity();
-              proc.fromJson(
-                await getContentByFileAndFolder(
-                  fileName: partes.last,
-                  folder: FoldStt.tray
-                )
-              );
-              if(partes.last.contains(fileS.prefixFldWrk)) {
-                current = proc.toJsonMini();
-              }else{
-                lstCamps.add(proc.toJsonMini());
-              }
-            }
-          }
-
-          lstCamps = List<Map<String, dynamic>>.from(lstCamps.reversed.toList());
-          if(current.isNotEmpty) {
-            lstCamps.insert(0, current);
-          }
-          current = {};
-        }
-      }
-    }
-    return lstCamps;
-  }
-
-  /// Recuperamos la entidad en proceso desde el archivo que se esta trabajando
-  static Future<ProcesoEntity> getFileWorkingEnProceso(String pathFile) async {
-
-    final content = await getMsgToMap(pathFile);
-    return ProcesoEntity()..fromJson(content);
-  }
-
-  ///
-  static Future<String> getPathOfContacto(int idContac) async {
-
-    Directory? foldCtcs = GetPaths.getPathsFolderTo('data_ctcs');
-    
-    File ctac = File('${foldCtcs!.path}${GetPaths.getSep()}$idContac.json');
-    if(!ctac.existsSync()) {
-      // Descargarlo desde servidor remoto.
-      await _downloadDataContact(idContac, false);
-    }
-
-    return '${foldCtcs.path}${GetPaths.getSep()}$idContac.json';
-  }
-
-  ///
-  static Future<ContactEntity> getFileOfContacto(int idContac) async {
-
-    ContactEntity ctcEntity = ContactEntity();
-    Directory? foldCtcs = GetPaths.getPathsFolderTo('data_ctcs');
-    
-    File ctac = File('${foldCtcs!.path}${GetPaths.getSep()}$idContac.json');
-    if(!ctac.existsSync()) {
-
-      // Descargarlo desde servidor remoto.
-      return await _downloadDataContact(idContac, true) ?? ctcEntity;
-
-    }else{
-      ctcEntity.fromJson(
-        Map<String, dynamic>.from(json.decode(ctac.readAsStringSync()))
-      );
-    }
-
-    return ctcEntity;
-  }
-
-  ///
-  static Future<ContactEntity?> _downloadDataContact(int idCtc, bool getMap) async {
-
-    Map<String, dynamic> content = {};
-    ContactEntity ctcEntity = ContactEntity();
-    Directory? foldCtcs = GetPaths.getPathsFolderTo('data_ctcs');
-
-    String path = await GetPaths.getUri('get_contacto_byid');
-    await MyHttp.get('$path$idCtc/');
-    
-    if(!MyHttp.result['abort']) {
-      content = Map<String, dynamic>.from( MyHttp.result['body'] );
-      ctcEntity.fromServer(content);
-      File ctac = File('${foldCtcs!.path}${GetPaths.getSep()}$idCtc.json');
-      ctac.writeAsStringSync(json.encode(ctcEntity.toJson()));
-    }
-    return (getMap) ? ctcEntity : null;
+    final msgs = getLstFilesByFolder(folder);
+    return msgs.length;
   }
 
   /// [r] Obtenemos el contenido del archivo indicado por parametro
@@ -461,7 +310,6 @@ class GetContentFile {
     return [];
   }
 
-  
   /// [r] Retorna el nombre del archivo dentro de TRAY que cuenta
   /// con la mayor prioridad.
   static Future<String> searchPriority(List<FileSystemEntity> campas) async {
@@ -633,6 +481,220 @@ class GetContentFile {
     return fileW;
   }
 
+  /// Buscamos el archivo el cual estamos trabajando en la carpeta indicada
+  /// [RETURN] un Mapa en caso de existir.
+  static Future<Map<String, dynamic>> getContentFileWorking({required FoldStt folder}) async {
+
+    final pathWork = await getPathFileWorking(folder: folder);
+    if(pathWork['uri'].isNotEmpty) {
+      return await getMsgToMap(pathWork['uri']);
+    }
+    return {};
+  }
+
+  ///
+  static Future<Map<String, dynamic>> _extraerReceptoresAndPutAwait(
+    Map<String, dynamic> data, String pathFile
+  ) async {
+
+    // final receivers = List<int>.from(data['receivers']);
+    // final nextReceivers = List<int>.from(data['receivers']);
+    // TODO
+    return {};
+  }
+
+  /// Le quitamos la seña de archivo trabajando y lo movemos al folder TRAY
+  /// y colocamos todos los paths necesarios al procesoEntity y al scmEntity
+  static Future<void> moveFileWorking({
+    required FoldStt from, required FoldStt to
+  }) async {
+
+    final pathStage = await getPathFileWorking(folder: from);
+    //ScmFile fileS = ScmFile(pathOrigin: pathStage['uri']);
+    String pathTo = ''; //fileS.convertPathTo(to, pathStage['uri'], withoutWorking: true);
+
+    File fileContent = File(pathStage['uri']);
+    Map<String, dynamic> content = await getMsgToMap(pathStage['uri']);
+    fileContent.deleteSync();
+    fileContent = File(pathTo);
+    fileContent.writeAsStringSync( json.encode(content) );
+  }
+
+  /// [r] Usado para extrar los datos minimos del archivo de campañas para
+  /// mostrarlas en la parte inferior de la page de home
+  static Future<List<Map<String, dynamic>>> getAllCampaingsWithDataMini() async {
+
+    List<Map<String, dynamic>> lstCamps = [];
+    
+    final lstF = getLstFilesByFolder(FoldStt.tray);
+    if(lstF.isNotEmpty) {
+
+      Map<String, dynamic> current = {};
+
+      for (var i = 0; i < lstF.length; i++) {
+        List<String> partes = lstF[i].path.split(GetPaths.getSep());
+        if(!partes.last.contains(ScmPaths.prefixFldSended)) {
+
+          final proc = ProcesoEntity();
+          proc.fromJson(
+            await getContentByFileAndFolder(
+              fileName: partes.last, folder: FoldStt.tray
+            )
+          );
+          if(partes.last.contains(ScmPaths.prefixFldWrk)) {
+            current = proc.toJsonMini();
+          }else{
+            lstCamps.add(proc.toJsonMini());
+          }
+        }
+      }
+
+      lstCamps = List<Map<String, dynamic>>.from(lstCamps.reversed.toList());
+      if(current.isNotEmpty) {
+        lstCamps.insert(0, current);
+      }
+      current = {};
+    }
+    return lstCamps;
+  }
+
+  /// [r] Usado para extrar los datos minimos del archivo ubicado en
+  /// AWAIT los cuales son los receivers a los que se le enviaran la campaña
+  /// que se esta procesando.
+  /// 
+  /// El parametro fileNameCurrent es usado para evitar devolver el msg
+  /// que se esta procesando actualmente
+  static Future<List<ScmEntity>> getAllReceiverOfCampaings({
+    required List<String> filesRecivers, required String fileNameCurrent
+  }) async {
+
+    List<ScmEntity> lstRecivers = [];
+    
+    if(filesRecivers.isNotEmpty) {
+      for (var i = 0; i < filesRecivers.length; i++) {
+        if(filesRecivers[i] != fileNameCurrent) {
+          final lstF = await getContentByFileAndFolder(
+            fileName: filesRecivers[i], folder: FoldStt.wait
+          );
+          if(lstF.isNotEmpty) {
+            lstRecivers.add(
+              ScmEntity()..fromProvider(lstF)
+            );
+          }
+        }
+      }
+    }
+    return lstRecivers;
+  }
+
+  /// [r] Tomanos el contenido del mensaje enviado por parametro
+  static Future<List<String>> getMsgOfCampaing(String msgFile) async {
+
+    List<String> msg = [];
+    final dirM = GetPaths.getPathsFolderTo('scm_msgs');
+    if(dirM != null) {
+
+      final lines = utf8.decoder.bind(
+        File('${dirM.path}${GetPaths.getSep()}$msgFile').openRead()
+      ).transform(const LineSplitter());
+
+      try {
+        await for (final line in lines) {
+          msg.add(line);
+        }
+      } catch (_) {}
+    }
+
+    return msg;
+  }
+
+  /// [r] Usado para cambiar un archivo de carpeta
+  static Future<bool> changeDeFolder({
+    required String filename,
+    required FoldStt from, required FoldStt to
+  }) async {
+
+    final fromFld = GetPaths.getPathsFolderTo(getFolder(from));
+    final toFld = GetPaths.getPathsFolderTo(getFolder(to));
+    if(fromFld != null && toFld != null) {
+      if(fromFld.existsSync()) {
+        File fromFile = File(
+          '${fromFld.path}${GetPaths.getSep()}$filename'
+        );
+        if(toFld.existsSync()) {
+          try {
+            fromFile.renameSync('${toFld.path}${GetPaths.getSep()}$filename');
+          } catch (_) {
+            return false;
+          } 
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /// Recuperamos la entidad en proceso desde el archivo que se esta trabajando
+  static Future<ProcesoEntity> getFileWorkingEnProceso(String pathFile) async {
+
+    final content = await getMsgToMap(pathFile);
+    return ProcesoEntity()..fromJson(content);
+  }
+
+  ///
+  static Future<String> getPathOfContacto(int idContac) async {
+
+    Directory? foldCtcs = GetPaths.getPathsFolderTo('data_ctcs');
+    
+    File ctac = File('${foldCtcs!.path}${GetPaths.getSep()}$idContac.json');
+    if(!ctac.existsSync()) {
+      // Descargarlo desde servidor remoto.
+      await _downloadDataContact(idContac, false);
+    }
+
+    return '${foldCtcs.path}${GetPaths.getSep()}$idContac.json';
+  }
+
+  ///
+  static Future<ContactEntity> getFileOfContacto(int idContac) async {
+
+    ContactEntity ctcEntity = ContactEntity();
+    Directory? foldCtcs = GetPaths.getPathsFolderTo('data_ctcs');
+    
+    File ctac = File('${foldCtcs!.path}${GetPaths.getSep()}$idContac.json');
+    if(!ctac.existsSync()) {
+
+      // Descargarlo desde servidor remoto.
+      return await _downloadDataContact(idContac, true) ?? ctcEntity;
+
+    }else{
+      ctcEntity.fromJson(
+        Map<String, dynamic>.from(json.decode(ctac.readAsStringSync()))
+      );
+    }
+
+    return ctcEntity;
+  }
+
+  ///
+  static Future<ContactEntity?> _downloadDataContact(int idCtc, bool getMap) async {
+
+    Map<String, dynamic> content = {};
+    ContactEntity ctcEntity = ContactEntity();
+    Directory? foldCtcs = GetPaths.getPathsFolderTo('data_ctcs');
+
+    String path = await GetPaths.getUri('get_contacto_byid');
+    await MyHttp.get('$path$idCtc/');
+    
+    if(!MyHttp.result['abort']) {
+      content = Map<String, dynamic>.from( MyHttp.result['body'] );
+      ctcEntity.fromServer(content);
+      File ctac = File('${foldCtcs!.path}${GetPaths.getSep()}$idCtc.json');
+      ctac.writeAsStringSync(json.encode(ctcEntity.toJson()));
+    }
+    return (getMap) ? ctcEntity : null;
+  }
+
   /// Guardamos el log en el archivo del mensaje en proceso
   static Future<void> setMsgInFile(
     String pathFile, Map<String, dynamic> data
@@ -673,27 +735,6 @@ class GetContentFile {
   }
 
   ///
-  static Future<List<String>> getMsgOfCampaing(String msgFile) async {
-
-    List<String> msg = [];
-    final dirM = GetPaths.getPathsFolderTo('scm_msgs');
-    if(dirM != null) {
-
-      final lines = utf8.decoder.bind(
-        File('${dirM.path}${GetPaths.getSep()}$msgFile').openRead()
-      ).transform(const LineSplitter());
-
-      try {
-        await for (final line in lines) {
-          msg.add(line);
-        }
-      } catch (_) {}
-    }
-
-    return msg;
-  }
-
-  ///
   static Future<Map<String, dynamic>> getCurcsTesting() async {
 
     final dirM = GetPaths.getPathRoot();
@@ -721,32 +762,6 @@ class GetContentFile {
     }
 
     return mensajes;
-  }
-
-  ///
-  static Future<bool> changeDeFolder({
-    required String filename,
-    required FoldStt from, required FoldStt to
-  }) async {
-
-    final fromFld = GetPaths.getPathsFolderTo(getFolder(from));
-    final toFld = GetPaths.getPathsFolderTo(getFolder(to));
-    if(fromFld != null && toFld != null) {
-      if(fromFld.existsSync()) {
-        File fromFile = File(
-          '${fromFld.path}${GetPaths.getSep()}$filename'
-        );
-        if(toFld.existsSync()) {
-          try {
-            fromFile.renameSync('${toFld.path}${GetPaths.getSep()}$filename');
-          } catch (_) {
-            return false;
-          } 
-          return true;
-        }
-      }
-    }
-    return false;
   }
 
   ///
@@ -793,4 +808,20 @@ class GetContentFile {
     } catch (_) {}
 
   }
+
+  ///
+  static Future<ScmFile?> getScmFileWorking({
+    FoldStt folder = FoldStt.tray
+  }) async {
+
+    ScmFile fileS = ScmFile();
+    final c = await GetContentFile.getContentFileWorking(folder: folder);
+    if(c.isNotEmpty) {
+      fileS.fromFileCampaing(c);
+      fileS.createNameFile();
+      return fileS;
+    }
+    return null;
+  }
+
 }

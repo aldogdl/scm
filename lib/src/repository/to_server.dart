@@ -1,0 +1,26 @@
+import '../services/get_paths.dart';
+import '../services/my_http.dart';
+
+class ToServer {
+
+  static Map<String, dynamic> result = {'abort':false, 'msg':'ok', 'body':[]};
+
+  ///
+  static void clean() {
+    result = {'abort':false, 'msg':'ok', 'body':[]};
+  }
+
+  ///
+  static Future<void> regEnvioInBD(int idCamp, int idReceiver, {
+    String stt = 'i', bool isLocal = true
+  }) async {
+
+    String path = await GetPaths.getUri('set_reg_envio', isLocal: isLocal);
+    await MyHttp.post(
+      path, {'camp': idCamp, 'receiver': idReceiver,
+        'stt': stt, 'isLast': false
+      }
+    );
+    result = MyHttp.result;
+  }
+}

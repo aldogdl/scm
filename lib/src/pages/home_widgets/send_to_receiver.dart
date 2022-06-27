@@ -3,13 +3,13 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
-import 'package:glass_kit/glass_kit.dart';
+import 'package:scm/src/repository/to_server.dart';
 
-import '../../entity/scm_file.dart';
-import '../../entity/scm_entity.dart';
 import '../../providers/process_provider.dart';
 import '../../services/get_content_files.dart';
 import '../../services/puppetter/browser_task.dart';
+import '../../services/scm/scm_paths.dart';
+import '../../widgets/my_tool_tip.dart';
 import '../../widgets/texto.dart';
 import '../../widgets/tile_contacts.dart';
 
@@ -25,33 +25,25 @@ class SendToReceiver extends StatefulWidget {
 
 class _SendToReceiverState extends State<SendToReceiver> {
 
-  
   final ValueNotifier<double> _progressTasks = ValueNotifier(0);
   final ValueNotifier<double> _progressSended = ValueNotifier(0);
+  final ValueNotifier<double> _progressFinished = ValueNotifier(0);
   final ValueNotifier<String> _msgProgreso = ValueNotifier('');
-  final ValueNotifier<bool> _prepareNext = ValueNotifier(false);
 
   late ProcessProvider _proc;
-  final _fileS = ScmFile();
-
   double _progressTotal = 0;
-  int timeTestByStep = 500;
+  int timeTestByStep = 3000;
   bool _isInit = false;
 
-  /// _skeepToNext indica que ubo un error pero que podemos saltar al siguiente
-  /// remitente, en caso de que sea false, el sistema debe continuar con el
-  /// mensaje actual o en caso de error detener el sistema.
-  bool _skeepToNext = false;
-
-  bool _isSending = false;
   double _pixPerTask = 0;
+  double _pixPerTaskFinish = 0;
   Map<String, dynamic> _simula = {};
   int _indexLastCurcTester = 0;
+  // Colocamos el msg utilizado para enviarlo al chat de Contactos interno
   List<String> _msgC = [];
 
   @override
   void initState() {
-
     _initWidget();
     super.initState();
   }
@@ -60,72 +52,50 @@ class _SendToReceiverState extends State<SendToReceiver> {
   void dispose() {
     _progressTasks.dispose();
     _progressSended.dispose();
+    _progressFinished.dispose();
     _msgProgreso.dispose();
-    _prepareNext.dispose();
     super.dispose();
   }
 
-  /// El prov.receiverCurrent, es hidratado desde el widget ColaPage::_checarArranque
-  /// este selecciona el archivo main de la lista encontrada en la carpeta scm_await
-  /// 
-  /// Esta clase debe ser la encargada de tomar los siguientes receptores indicados
-  /// en el archivo main.
   @override
   Widget build(BuildContext context) {
 
-    return Selector<ProcessProvider, ScmEntity>(
-      selector: (_, prov) => prov.receiverCurrent,
-      builder: (_, msgProc, __) {
-
-        bool isHolder = (msgProc.receiver.id == 0) ? true : false;
-
-        return Container(
-          margin: const EdgeInsets.only(
-            top: 15, right: 10, bottom: 8, left: 10
-          ),
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(5),
-            color: Colors.grey.withOpacity(0.3),
-            border: Border.all(color: const Color.fromARGB(255, 0, 0, 0)),
-            boxShadow: const [
-              BoxShadow(
-                blurRadius: 3,
-                offset: Offset(1,1)
-              )
-            ]
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
-              color: Colors.grey.withOpacity(0.3),
-              border: Border.all(color: const Color.fromARGB(255, 90, 90, 90)),
-            ),
-            child: Stack(
-              children: [
-                _body(isHolder, msgProc),
-                _finEnvioCurrent()
-              ],
-            ),
-          ),
-        );
-      }
+    return Container(
+      margin: const EdgeInsets.only(
+        top: 15, right: 10, bottom: 8, left: 10
+      ),
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(5),
+        color: Colors.grey.withOpacity(0.3),
+        border: Border.all(color: const Color.fromARGB(255, 0, 0, 0)),
+        boxShadow: const [
+          BoxShadow(
+            blurRadius: 3,
+            offset: Offset(1,1)
+          )
+        ]
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(5),
+          color: Colors.grey.withOpacity(0.3),
+          border: Border.all(color: const Color.fromARGB(255, 90, 90, 90)),
+        ),
+        child: MyToolTip(msg: 'Receptor en Proceso', child: _body()),
+      ),
     );
   }
 
   ///
-  Widget _body(bool isHolder, ScmEntity scm) {
+  Widget _body() {
 
     double alto = 18;
-
-    if(!isHolder && !_isSending) {
-      _initProcesoDeEnvio(scm);
-    }
 
     return Column(
       children: [
         const SizedBox(height: 8),
-        _tituloOrdenProgress(scm),
+        _tituloOrdenProgress(),
         const SizedBox(height: 1),
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -138,8 +108,8 @@ class _SendToReceiverState extends State<SendToReceiver> {
           ),
           child: _barraProgreso(alto),
         ),
-        const SizedBox(height: 5),
-        if(isHolder)
+        const SizedBox(height: 2),
+        if(_proc.receiverCurrent.idReceiver == 0)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 11),
             child: Center(
@@ -151,64 +121,20 @@ class _SendToReceiverState extends State<SendToReceiver> {
           )
         else
           TileContacts(
-            title: '-> RECEPTOR EN PROCESO',
-            nombre: scm.receiver.nombre,
-            subTi: scm.receiver.celular,
-            celular: scm.receiver.celular,
-            curc: scm.receiver.curc,
+            title: '-> ${_proc.receiverCurrent.receiver.empresa}',
+            nombre: _proc.receiverCurrent.nombre,
+            subTi: _proc.receiverCurrent.receiver.celular,
+            celular: _proc.receiverCurrent.receiver.celular,
+            curc: _proc.receiverCurrent.curc,
             isCurrent: true,
           ),
+        const SizedBox(height: 3),
       ],
     );
   }
 
   ///
-  Widget _finEnvioCurrent() {
-
-    return Positioned(
-      top: 0, left: 0, right: 0, bottom: 0,
-      child: ValueListenableBuilder<bool>(
-        valueListenable: _prepareNext,
-        builder: (_, val, child) {
-          return (val) ? child! : const SizedBox();
-        },
-        child: GlassContainer.frostedGlass(
-          height: appWindow.size.height * 0.3,
-          width: appWindow.size.width + 100,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(height: 8),
-              Selector<ProcessProvider, String>(
-                selector: (_, provi) => provi.reloadMsgAcction,
-                builder: (_, msg, __) {
-
-                  if(msg.toLowerCase().contains('continuamos')) {
-
-                    Future.delayed(const Duration(milliseconds: 500), () async {
-                      _proc.reloadMsgAcction = '';
-                      _prepareNext.value = false;
-                      _putNextEnEnvio();
-                    });
-                  }
-
-                  return Texto(
-                    txt: _proc.reloadMsgAcction,
-                    txtC: Colors.white.withOpacity(0.7),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-  
-  ///
-  Widget _tituloOrdenProgress(ScmEntity scm) {
+  Widget _tituloOrdenProgress() {
 
     String tit = 'EN ESPERA...';
     if(_proc.enProceso.id != 0) {
@@ -267,6 +193,23 @@ class _SendToReceiverState extends State<SendToReceiver> {
             },
           ),
         ),
+        Positioned(
+          top: 0, left: 0,
+          child: ValueListenableBuilder<double>(
+            valueListenable: _progressFinished,
+            builder: (_, cant, __) {
+              return Container(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                width: cant,
+                height: alto,
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 169, 180, 221),
+                  borderRadius: BorderRadius.circular(3)
+                ),
+              );
+            },
+          ),
+        ),
         Positioned.fill(
           child: ValueListenableBuilder<String>(
             valueListenable: _msgProgreso,
@@ -295,20 +238,25 @@ class _SendToReceiverState extends State<SendToReceiver> {
       _isInit = true;
       _progressTotal = appWindow.size.width - 100;
       _pixPerTask = 0;
+      _pixPerTaskFinish = 0;
       _proc = context.read<ProcessProvider>();
     }
-
     // los task son los pasos que se requieren para enviar msg
     final tasks = BrowserTask.getTasks();
     _pixPerTask = (_progressTotal / tasks.length);
     await _formatearMsg();
+
+    if(_proc.receiverCurrent.idReceiver != 0) {
+      Future.delayed(const Duration(milliseconds: 600), (){
+        _initProcesoDeEnvio();
+      });
+    }
   }
 
   ///
   Future<void> isPaused() async {
 
     if(_proc.isPause) {
-      _isSending = false;
       do {
         await Future.delayed(const Duration(milliseconds: 500), (){
           _proc.termitente = !_proc.termitente;
@@ -318,14 +266,14 @@ class _SendToReceiverState extends State<SendToReceiver> {
   }
 
   ///
-  Future<void> _initProcesoDeEnvio(ScmEntity scm) async {
+  Future<void> _initProcesoDeEnvio() async {
     
+    final scm = _proc.receiverCurrent;
     if(!mounted){ return; }
     await isPaused();
-    _isSending = true;
     _simula = {};
 
-    //_simula = {'with': 'ok'};
+    _simula = {'with': 'ok'};
     // _simula = {
     //   'with': 'err', 'secc': 'bskContac', 'tipo': 1
     // };
@@ -351,7 +299,7 @@ class _SendToReceiverState extends State<SendToReceiver> {
       }
     }
 
-    String curcTo = scm.receiver.curc;
+    String curcTo = scm.curc;
     if(scm.receiver.cargo == 'addCtac') {
       curcTo = BrowserTask.chatContacts;
     }
@@ -361,27 +309,24 @@ class _SendToReceiverState extends State<SendToReceiver> {
     // Buscamos el contacto.
     if(_simula.isNotEmpty) {
 
-      await _simulaProceso(scm, 'bskContac');
+      await _simulaProceso('bskContac');
 
     }else{
 
-      BrowserTask.buscarContacto(txt: curcTo)
-        .listen((event) async {
+      BrowserTask.buscarContacto(txt: curcTo).listen((event) async {
         
         if(event.startsWith('ERROR')) {
-          _skeepToNext = true;
           await _registrarError(event);
         }else{
 
           if(event == 'ok') {
-            _skeepToNext = false;
             try {
               _progressTasks.value = _progressTasks.value + _pixPerTask;
             } catch (e) {
               return;
             }
             await BrowserTask.wait(500);
-            await _entrarAlChat(scm);
+            await _entrarAlChat();
           }
         }
       });
@@ -389,14 +334,14 @@ class _SendToReceiverState extends State<SendToReceiver> {
   }
 
   ///
-  Future<void> _entrarAlChat(ScmEntity scm) async {
+  Future<void> _entrarAlChat() async {
 
     if(!mounted){ return; }
     await isPaused();
     bool isGrupo = false;
 
-    String curcTo = scm.receiver.curc;
-    if(scm.receiver.cargo == 'addCtac') {
+    String curcTo = _proc.receiverCurrent.curc;
+    if(_proc.receiverCurrent.receiver.cargo == 'addCtac') {
       curcTo = BrowserTask.chatContacts;
       isGrupo = true;
     }
@@ -404,28 +349,26 @@ class _SendToReceiverState extends State<SendToReceiver> {
 
     if(_simula.isNotEmpty) {
 
-      await _simulaProceso(scm, 'chatDeCtc');
+      await _simulaProceso('chatDeCtc');
 
     }else{
 
-      BrowserTask.entrarAlChat( curcTo, isGrup: isGrupo )
+      BrowserTask.entrarAlChat(curcTo, isGrup: isGrupo)
       .listen((event) async {
 
         if(event.startsWith('ERROR')) {
           await _registrarError(event);
-          _skeepToNext = true;
         }else{
 
           if(event == 'ok') {
 
-            _skeepToNext = false;
             try {
               _progressTasks.value = _progressTasks.value + _pixPerTask;
             } catch (e) {
               return;
             }
             await BrowserTask.wait(500);
-            await _escribirMsg(scm);
+            await _escribirMsg();
           }
         }
       });
@@ -433,7 +376,7 @@ class _SendToReceiverState extends State<SendToReceiver> {
   }
 
   ///
-  Future<void> _escribirMsg(ScmEntity scm) async {
+  Future<void> _escribirMsg() async {
 
     if(!mounted){ return; }
     await isPaused();
@@ -441,7 +384,7 @@ class _SendToReceiverState extends State<SendToReceiver> {
 
     if(_simula.isNotEmpty) {
 
-      await _simulaProceso(scm, 'writeMsg');
+      await _simulaProceso('writeMsg');
 
     }else{
 
@@ -451,24 +394,22 @@ class _SendToReceiverState extends State<SendToReceiver> {
       // List<String> msgSend = (_msgC.isNotEmpty)
       //   ? _msgC : _proc.getMensajeFormated();
       List<String> msgSend = [];
-      BrowserTask.escribirMsg(msgSend)
-      .listen((event) async {
+      BrowserTask.escribirMsg(msgSend).listen((event) async {
 
         if(event.startsWith('ERROR')) {
-          _skeepToNext = true;
           await _registrarError(event);
         }else{
 
           if(event == 'ok') {
             _msgC = [];
-            _skeepToNext = false;
             try {
               _progressTasks.value = _progressTasks.value + _pixPerTask;
             } catch (e) {
               return;
             }
+            BrowserTask.comparaCon = [];
             await BrowserTask.wait(500);
-            await _enviarMsg(scm);
+            await _enviarMsg();
           }
         }
       });
@@ -478,14 +419,14 @@ class _SendToReceiverState extends State<SendToReceiver> {
   /// Este es la ultima tarea requerida para enviar un mensaje
   /// -> Si todo bien: _getNextReceiver
   /// -> Si hay Error: _registrarError
-  Future<void> _enviarMsg(ScmEntity scm) async {
+  Future<void> _enviarMsg() async {
 
     if(!mounted){ return; }
     await isPaused();
 
     if(_proc.noSend) {
       _msgProgreso.value = 'Mensaje sin Envio';
-      await _getNextReceiver(scm);
+      await _getNextReceiver();
       return;
     }
 
@@ -493,23 +434,21 @@ class _SendToReceiverState extends State<SendToReceiver> {
 
     if(_simula.isNotEmpty) {
 
-      await _simulaProceso(scm, 'btnSend');
+      await _simulaProceso('btnSend');
 
     }else{
 
       String event = await BrowserTask.sendMensaje();
       if(event.startsWith('ERROR')) {
-        _skeepToNext = true;
         await _registrarError(event);
       }else{
 
         if(event == 'ok') {
-          _skeepToNext = false;
           try {
             _progressTasks.value = _progressTasks.value + _pixPerTask;
           } catch (_) {}
           await BrowserTask.wait(500);
-          await _getNextReceiver(scm);
+          await _getNextReceiver();
         }
       }
     }
@@ -524,7 +463,7 @@ class _SendToReceiverState extends State<SendToReceiver> {
     }
 
     List<String> toCompare = [];
-    List<String> items = _proc.receiverCurrent.receiver.nombre.toLowerCase().split(' ');
+    List<String> items = _proc.receiverCurrent.nombre.toLowerCase().split(' ');
     for (var i = 0; i < items.length; i++) {
       toCompare.add(items[i].trim());
     }
@@ -565,169 +504,124 @@ class _SendToReceiverState extends State<SendToReceiver> {
   }
 
   /// 
-  Future<void>  _registrarError(String error) async {
+  Future<void> _registrarError(String error) async {
 
     // Extraemos el tipo de error que se produjo.
     String tipoErr = BrowserTask.getTipoDeError(error);
-
-    if(tipoErr == 'retry') {
-
-      _proc.receiverCurrent.intents = _proc.receiverCurrent.intents+1;
-      if(_proc.receiverCurrent.intents > 3) {
-        _proc.receiverCurrent.errores.add(error);
-        await _enviarToPapelera(_proc.receiverCurrent);
-        return;
-      }
-      _initProcesoDeEnvio(_proc.receiverCurrent);
-      return;
+    _proc.receiverCurrent.intents = _proc.receiverCurrent.intents+1;
+    _proc.receiverCurrent.errores.add(error);
+    await GetContentFile.saveData(
+      _proc.currentFileReveiver, FoldStt.wait, _proc.receiverCurrent.toJson(),
+    );
+    switch (tipoErr) {
+      case 'retry':
+        if(_proc.receiverCurrent.intents > 3) {
+          await _enviarToPapelera();
+        }else{
+          _initProcesoDeEnvio();
+        }
+        break;
+      case 'drash':
+        await _enviarToPapelera();
+        break;
+      case 'contac':
+        _buildMsgContacts().then((_) async {
+          await _initProcesoDeEnvio();
+        });
+        break;
+      case 'stop':
+        await _detenerSistema(error);
+        break;
+      default:
     }
-
-    if(tipoErr == 'drash') {
-      _proc.receiverCurrent.errores.add(error);
-      await _enviarToPapelera(_proc.receiverCurrent);
-    }
-
-    if(tipoErr == 'contac') {
-      await _enviarToContactos();
-      _proc.receiverCurrent.errores.add(error);
-      await _initProcesoDeEnvio(_proc.receiverCurrent);
-    }
-
-    if(tipoErr == 'stop') {
-      await _detenerSistema(error);
-    }
-
-    // Avisarle a Harvi que haga una descarga del centinela desde remoto a local.
   }
 
   ///
-  Future<void> _getNextReceiver(ScmEntity scm) async {
+  Future<void> _getNextReceiver() async {
 
     if(!mounted){ return; }
+    List<String> taskFinish = ['Guardando Registro'];
+    List<int> acc = [0];
 
-    _msgProgreso.value = '';
-    bool next = false;
-    if(scm.errores.isEmpty) {
-      next = true;
-    }else{
+    if(_proc.receiverCurrent.errores.isNotEmpty) {
       if(_proc.receiverCurrent.receiver.cargo == 'addCtac') {
-        await _enviarToPapelera(scm);
-        _skeepToNext = false;
-        next = true;
-      }else{
-        await _finalizarEnvioActual(scm);
+        // El receiver current se envio a contactos por ello
+        // el archivo se envia a papelera
+        taskFinish.add('Enviando a PAPELERA');
+        acc.add(1);
       }
     }
 
-    if(next) {
-      if(!_skeepToNext) {
-        _prepareNext.value = true;
-        _proc.reloadMsgAcction = '-> REGISTRANDO ENVIO';
-        bool isFine = await _proc.setSendedInDB(scm);
-        if(isFine) {
-          _proc.reloadMsgAcction = '-> COLOCANDO EN ENVIADOS';
-          await _cambiarDeFolder(scm.data, FoldStt.sended);
-          _skeepToNextReceiver(scm);
-        }else{
-          _proc.reloadMsgAcction = '-> ERROR, NO SE GUARDÓ EN DB.';
-        }
-      }
+    bool isRegisterInBd = false;
+    if(acc.contains(1)) {
+      _msgProgreso.value = taskFinish[1];
+      await _enviarToPapelera();
+      isRegisterInBd = true;
+    }else{
+      taskFinish.add('-');
     }
-  }
+    taskFinish.add('Registrando B.D.');
+    taskFinish.add('Receiver a Sended.');
+    taskFinish.add('Guardando datos en cache.');
+    taskFinish.add('Revisando prioridades.');
 
-  ///
-  void _skeepToNextReceiver(ScmEntity scm) async {
+    _pixPerTaskFinish = (_progressTotal / taskFinish.length);
 
-    final nextFile = _buildNextFile(scm);
-    if(nextFile.isNotEmpty) {
-
-      _proc.reloadMsgAcction = '-> MARCANDO ARCHIVO PRINCIPAL';
-      final content = await GetContentFile.getContentByFileAndFolder(
-        fileName: nextFile, folder: FoldStt.wait
+    _msgProgreso.value = taskFinish[2];
+    _progressFinished.value = _pixPerTaskFinish * 2;
+    // Si es true es que se envio a papelera anteriormente
+    // por lo tanto el reg. en la BD ya se realizó.
+    if(!isRegisterInBd) {
+      await ToServer.regEnvioInBD(
+        _proc.receiverCurrent.idCamp, _proc.receiverCurrent.idReceiver
       );
-      if(content.isNotEmpty) {
-        await GetContentFile.changeMsgFromChildToMain(filename: nextFile);
-      }
-      await _updateDataMain(scm);
     }else{
-      _proc.reloadMsgAcction = '-> FINALIZANDO ENVIO';
-      await _updateDataMain(scm);
-      await _finalizarEnvioActual(scm);
+      ToServer.result['abort'] = false;
+    }
+
+    if(!ToServer.result['abort']){
+      ToServer.clean();
+
+      _msgProgreso.value = taskFinish[3];
+      _progressFinished.value = _pixPerTaskFinish * 3;
+      await GetContentFile.changeDeFolder(
+        filename: _proc.currentFileReveiver, 
+        from: FoldStt.wait, to: FoldStt.sended
+      );
+
+      _msgProgreso.value = taskFinish[4];
+      _progressFinished.value = _pixPerTaskFinish * 4;
+      _proc.enProceso.noSend.remove(_proc.currentFileReveiver);
+      _proc.enProceso.sended.add(_proc.currentFileReveiver);
+      await GetContentFile.saveData(
+        ScmPaths.extractNameFile(_proc.currentFileProcess),
+        FoldStt.tray, _proc.enProceso.toJson(),
+      );
+
+      _msgProgreso.value = taskFinish[5];
+      _progressFinished.value = _pixPerTaskFinish * 5;
+      _proc.currentFileReveiver = '';
     }
   }
 
   ///
-  Future<void> _putNextEnEnvio() async {
+  Future<void> _enviarToPapelera() async {
 
-    List<ScmEntity> rec = List<ScmEntity>.from(_proc.receiversCola);
-    int ind = rec.indexWhere(
-      (element) => element.idReceiver == _proc.receiverCurrent.idReceiver
+    await ToServer.regEnvioInBD(
+      _proc.receiverCurrent.idCamp, _proc.receiverCurrent.idReceiver,
+      stt: 'p'
     );
-    if(ind != -1) {
-      rec.removeAt(ind);
-      _proc.receiversCola = rec;
-      if(_proc.receiversCola.isNotEmpty) {
-        _proc.receiverCurrent = ScmEntity();
-        Future.delayed(const Duration(milliseconds: 500), (){
-          _isSending = false;
-          _proc.receiverCurrent = _proc.receiversCola.first;
-        });
-      }
+    if(!ToServer.result['abort']) {
+      await GetContentFile.changeDeFolder(
+        filename: _proc.currentFileReveiver, 
+        from: FoldStt.wait, to: FoldStt.drash
+      );
     }
   }
 
-  ///
-  Future<void> _updateDataMain(ScmEntity scm) async {
-
-    _proc.enProceso.toSend.remove(_proc.currentFileReveiver);
-    _proc.enProceso.noSend.remove(_proc.currentFileReveiver);
-    _proc.enProceso.sended.add(_proc.currentFileReveiver);
-
-    await GetContentFile.updateSendersInFileData(
-      {
-        'toSend': _proc.enProceso.toSend,
-        'sended': _proc.enProceso.sended,
-        'noSend': _proc.enProceso.noSend
-      },
-      scm.data
-    );
-  }
-
-  /// Calculamos el nombre del archivo siguiente 
-  /// desde el mensaje actual.
-  String _buildNextFile(ScmEntity scm) {
-
-    
-    final fileS = ScmFile();
-    // cambiamos el main por el child
-    String nextF = scm.data.replaceFirst(fileS.sufM, fileS.suf);
-    final from = '${fileS.sF}${scm.idReceiver}${fileS.sF}';
-    nextF = nextF.replaceFirst(from, '');
-    return nextF;
-  }
-
-  ///
-  Future<void> _enviarToPapelera(ScmEntity scm) async {
-
-    _skeepToNext = true;
-    _prepareNext.value = true;
-    _proc.reloadMsgAcction = '-> REGISTRANDO ERROR';
-    bool echo = await GetContentFile.saveData(scm.data, FoldStt.wait, scm.toJson());
-    if(!echo) {
-      final fileMain = scm.data.replaceFirst(_fileS.suf, _fileS.sufM);
-      echo = await GetContentFile.saveData(fileMain, FoldStt.wait, scm.toJson());
-    }
-    bool isFine = await _proc.setSendedInDB(scm, stt: 'p');
-    if(isFine) {
-      await _cambiarDeFolder(scm.data, FoldStt.drash);
-      _skeepToNextReceiver(scm);
-    }else{
-      _proc.reloadMsgAcction = '-> ERROR, NO SE GUARDÓ EN DB.';
-    }
-  }
-
-  ///
-  Future<void> _enviarToContactos() async {
+  /// Preparamos mensaje para enviar el receiver a contactos,
+  /// ta que no fue encontrado en la lista de chats
+  Future<void> _buildMsgContacts() async {
 
     _msgC = await GetContentFile.getMsgOfCampaing('add_contact.txt');
 
@@ -788,59 +682,26 @@ class _SendToReceiverState extends State<SendToReceiver> {
   }
 
   ///
-  Future<void> _cambiarDeFolder(
-    String filename, FoldStt to
-  ) async {
-    
-    bool changed = await GetContentFile.changeDeFolder(
-      filename: filename, from: FoldStt.wait, to: to
-    );
-    if(!changed) {
-      // Intentar con main
-      final fileMain = filename.replaceFirst(_fileS.suf, _fileS.sufM);
-      changed = await GetContentFile.changeDeFolder(
-        filename: fileMain, from: FoldStt.wait, to: to
-      );
-
-      if(!changed) {
-        _proc.terminalIsMini = false;
-        _proc.addNewtaskTerminal('[ERROR] No se encontró $filename');
-      }
-    }
-    await Future.delayed(const Duration(milliseconds: 1000));
-  }
-
-  /// Al limpiar las variables el cron detecta que no hay nada en proceso y
-  /// toma el siguiente mensaje de la cola en caso de existir y comienza un
-  /// nuevo envio.
-  Future<void>  _finalizarEnvioActual(ScmEntity scm) async {
-
-    //  Marcar el archivo principal de la data del msg como sended_
-    await GetContentFile.putFileDataWorkingAsSended(scm);
-  }
-
-  ///
-  Future<void> _simulaProceso(ScmEntity scm, String proceso) async {
+  Future<void> _simulaProceso(String proceso) async {
 
     await BrowserTask.wait(timeTestByStep);
 
     if(_simula['with'] == 'ok') {
 
-      _skeepToNext = false;
       _progressTasks.value = _progressTasks.value + _pixPerTask;
       
       switch (proceso) {
         case 'bskContac':
-          await _entrarAlChat(scm);
+          await _entrarAlChat();
           break;
         case 'chatDeCtc':
-          await _escribirMsg(scm);
+          await _escribirMsg();
           break;
         case 'writeMsg':
-          await _enviarMsg(scm);
+          await _enviarMsg();
           break;
         case 'btnSend':
-          await _getNextReceiver(scm);
+          await _getNextReceiver();
           break;
         default:
       }
@@ -852,4 +713,6 @@ class _SendToReceiverState extends State<SendToReceiver> {
       );
     }
   }
+
+
 }

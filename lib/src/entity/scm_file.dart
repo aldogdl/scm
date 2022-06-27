@@ -2,10 +2,6 @@ import 'dart:io';
 
 import '../services/get_paths.dart';
 
-enum FoldStt {
-  stage, wait, tray, drash, sended
-}
-
 class ScmFile {
 
   final String prefixFldWrk = '_wk_';
@@ -73,31 +69,32 @@ class ScmFile {
 
   ///
   Map<String, dynamic> toScmEntity(String pathOriginStage, int receiverId) {
-    return {
-      'data': convertPathTo(FoldStt.tray, pathOriginStage),
-      'idReceiver': receiverId,
-    };
+    // return {
+    //   'data': convertPathTo(, pathOriginStage),
+    //   'idReceiver': receiverId,
+    // };
+    return {};
   }
 
-  ///
-  String convertPathTo(FoldStt to, String from, {bool withoutWorking = false}) {
+  // ///
+  // String convertPathTo(FoldStt to, String from, {bool withoutWorking = false}) {
 
-    List<String> partes = from.split(sep);
-    var nameF = partes.last;
-    if(withoutWorking) {
-      nameF = nameFile;
-    }
-    final pathTo = GetPaths.getPathsFolderTo(getFolder(to));
-    return '${pathTo!.path}$sep$nameF';
-  }
+  //   List<String> partes = from.split(sep);
+  //   var nameF = partes.last;
+  //   if(withoutWorking) {
+  //     nameF = nameFile;
+  //   }
+  //   final pathTo = GetPaths.getPathsFolderTo(getFolder(to));
+  //   return '${pathTo!.path}$sep$nameF';
+  // }
 
-  /// Recuperamos el nombre del folder desde el enum.
-  String getFolder(FoldStt fld) {
-    if(fld.name == 'wait') {
-      return 'scm_a${fld.name}';
-    }
-    return 'scm_${fld.name}';
-  }
+  // /// Recuperamos el nombre del folder desde el enum.
+  // String getFolder(FoldStt fld) {
+  //   if(fld.name == 'wait') {
+  //     return 'scm_a${fld.name}';
+  //   }
+  //   return 'scm_${fld.name}';
+  // }
 
   /// A partir de la propiedad pathOrigin
   void parse() {

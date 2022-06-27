@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../config/sng_manager.dart';
@@ -101,12 +100,7 @@ class ToolsBarr extends StatelessWidget {
               ),
               sp10,
               sp10,
-              _icoAcc(
-                isActive: false,
-                icono: Icons.share_location_outlined,
-                tip: 'Target',
-                fnc: () => onTap('target')
-              ),
+              _icoWatch(context, 'Targets'),
               sp10,
               sp10,
               _icoWatch(context, 'En Espera'),
@@ -153,6 +147,11 @@ class ToolsBarr extends StatelessWidget {
         val = '${watch.enAwait}';
         ico = Icons.mail_outline_outlined;
         page = 'espera';
+        break;
+      case 'Targets':
+        val = '${watch.enTray}';
+        ico = Icons.share_location_outlined;
+        page = 'targets';
         break;
       case 'Enviados':
         val = '${watch.sended}';
@@ -251,6 +250,6 @@ class ToolsBarr extends StatelessWidget {
   void _refrezcarPagina(BuildContext context, ProcessProvider procProv) {
 
     procProv.reloadMsgAcction = 'Revisando prioridades';
-    context.pop();
+    Navigator.of(context).pop();
   }
 }

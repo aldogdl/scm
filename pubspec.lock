@@ -182,13 +182,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "2.0.1"
-  go_router:
+  google_fonts:
     dependency: "direct main"
     description:
-      name: go_router
+      name: google_fonts
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "4.0.0"
+    version: "3.0.1"
   http:
     dependency: "direct main"
     description:
@@ -412,7 +412,7 @@ packages:
       name: puppeteer
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "2.10.0"
+    version: "2.11.0"
   shimmer_animation:
     dependency: "direct main"
     description:

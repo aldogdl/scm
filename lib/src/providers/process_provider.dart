@@ -7,10 +7,7 @@ import 'package:cron/cron.dart';
 import '../config/sng_manager.dart';
 import '../entity/proceso_entity.dart';
 import '../entity/scm_entity.dart';
-import '../entity/scm_file.dart';
 import '../services/get_content_files.dart';
-import '../services/get_paths.dart';
-import '../services/my_http.dart';
 import '../services/scm/scm_paths.dart';
 import '../vars/globals.dart';
 
@@ -35,7 +32,7 @@ class ProcessProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  ///
+  /// Utilizado para indicar que el mensaje no debe enviarse
   bool _noSend  = false;
   bool get noSend => _noSend;
   set noSend(bool isT) {
@@ -59,14 +56,6 @@ class ProcessProvider extends ChangeNotifier {
     notifyListeners();
   }
   
-  /// La version del centinela
-  int _verCenti = 0;
-  int get verCenti => _verCenti;
-  set verCenti(int newver) {
-    _verCenti = verCenti;
-    notifyListeners();
-  }
-
   DateTime initRR = DateTime.now();
 
   bool _terminalIsMini = true;
@@ -181,29 +170,6 @@ class ProcessProvider extends ChangeNotifier {
     }
   }
 
-  /// La lista de todas las campañas que estan a la espera, son
-  /// todos los archivos que estan en la carpeta TRAY
-  List<Map<String, dynamic>> _campaingsCola = [];
-  List<Map<String, dynamic>> get campaingsCola => _campaingsCola;
-  set campaingsCola(List<Map<String, dynamic>> lstRe) {
-    _campaingsCola = lstRe;
-    notifyListeners();
-  }
-  void cleanCampaingsCola() {
-    _campaingsCola = [];
-  }
-
-  /// La lista de todos los receptores de la campaña en proceso
-  List<ScmEntity> _receiversCola = [];
-  List<ScmEntity> get receiversCola => _receiversCola;
-  set receiversCola(List<ScmEntity> lstRe) {
-    _receiversCola = lstRe;
-    notifyListeners();
-  }
-  void cleanReceiversCola() {
-    _receiversCola = [];
-  }
-
   /// [r] El path absoluto al archivo de la campaña en proceso
   String currentFileProcess = '';
   /// [r] El nombre del archivo del receiver que se esta enviando
@@ -290,7 +256,6 @@ class ProcessProvider extends ChangeNotifier {
   /// [r] Limpiamos las variables correspondientes a la campaña actual
   void cleanCampaingCurrent() {
 
-    _receiversCola = [];
     _taskTerminal  = [];
     _lstTestings   = [];
     _msgCurrent    = [];
@@ -303,6 +268,7 @@ class ProcessProvider extends ChangeNotifier {
     _receiverCurrent = ScmEntity();
   }
 
+  
   /// [r] Usado solo para cerrar sesion
   Future<void> cerrarSesion() async {
 
@@ -341,47 +307,41 @@ class ProcessProvider extends ChangeNotifier {
   Future<void> buscamosCampaniaPrioritaria() async {
 
     if(currentFileReveiver.isNotEmpty) { return; }
-
+    
     if(!_isStopCronFles) { await stopCronFiles(); }
    
-    final dir = GetPaths.getPathsFolderTo(GetContentFile.getFolder(FoldStt.tray));
-    if(dir != null) {
-      if(dir.existsSync()) {
+    final campas = GetContentFile.getLstFilesByFolder(FoldStt.tray);
+    if(campas.isEmpty) { return; }
 
-        final campas = dir.listSync();
-        if(campas.isEmpty) { return; }
-
-        var filePriory = '';
-        if(campas.length > 1) {
-          filePriory = await GetContentFile.searchPriority(campas);
-        }else{
-          if(!campas.first.path.contains(ScmPaths.prefixFldSended)) {
-            filePriory = ScmPaths.extractNameFile(campas.first.path);
-            if(filePriory.contains(ScmPaths.prefixFldWrk)) {
-              filePriory = ScmPaths.removePrefixWork(filePriory, isPath: false);
-            }
-          }
+    var filePriory = '';
+    if(campas.length > 1) {
+      filePriory = await GetContentFile.searchPriority(campas);
+    }else{
+      if(!campas.first.path.contains(ScmPaths.prefixFldSended)) {
+        filePriory = ScmPaths.extractNameFile(campas.first.path);
+        if(filePriory.contains(ScmPaths.prefixFldWrk)) {
+          filePriory = ScmPaths.removePrefixWork(filePriory, isPath: false);
         }
+      }
+    }
 
-        if(filePriory.isNotEmpty) {
-          bool isSame = await GetContentFile.isSameCampaing(
-            currentFileProcess, filePriory
-          );
-          if(isSame) {
-            await _getReceiverToSend();
-          }else{
-            final fileW = await GetContentFile.cambiamosFileDeTrabajo(
-              currentFileProcess, filePriory
-            );
-            await _putCampaEnProceso(fileW);
-            await _getReceiverToSend();
-          }
-          
-          if(currentFileReveiver.isNotEmpty) {
+    if(filePriory.isNotEmpty) {
+      bool isSame = await GetContentFile.isSameCampaing(
+        currentFileProcess, filePriory
+      );
+      if(isSame) {
+        await _getReceiverToSend();
+      }else{
+        final fileW = await GetContentFile.cambiamosFileDeTrabajo(
+          currentFileProcess, filePriory
+        );
+        await _putCampaEnProceso(fileW);
+        await _getReceiverToSend();
+      }
+      
+      if(currentFileReveiver.isNotEmpty) {
 
-            // reloadMsgAcction = 'Iniciando Envio';
-          }
-        }
+        // reloadMsgAcction = 'Iniciando Envio';
       }
     }
   }
@@ -495,6 +455,7 @@ class ProcessProvider extends ChangeNotifier {
   Future<void> _checkingFolderLocales() async {
 
     enAwait = await GetContentFile.getCantContentFilesByFolder(FoldStt.wait);
+    enTray  = await GetContentFile.getCantContentFilesByFolder(FoldStt.tray);
     sended  = await GetContentFile.getCantContentFilesByFolder(FoldStt.sended);
     papelera= await GetContentFile.getCantContentFilesByFolder(FoldStt.drash);
     buscamosCampaniaPrioritaria().then((_) async {
@@ -505,31 +466,6 @@ class ProcessProvider extends ChangeNotifier {
       }
     });
   }
-
-  /// Guardamos el registro de mensaje enviado en las BDs
-  Future<bool> setSendedInDB(ScmEntity scm, {String stt = 'i'}) async {
-
-    final data = {
-      'camp': scm.idCamp, 'receiver': scm.idReceiver, 'stt': stt,
-      'isLast': false
-    };
-    String path = await GetPaths.getUri('set_reg_envio', isLocal: true);
-    await MyHttp.post(path, data);
-    
-    if(!MyHttp.result['abort']) {
-      if(!_globals.isLocalConn) {
-        path = await GetPaths.getUri('set_reg_envio', isLocal: false);
-        await MyHttp.post(path, data);
-        if(!MyHttp.result['abort']) {
-          return true;
-        }
-      }else{
-        return true;
-      }
-    }
-    return false;
-  }
-
 
 }
 

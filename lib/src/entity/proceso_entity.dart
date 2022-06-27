@@ -26,7 +26,11 @@ class ProcesoEntity {
       data = Map<String, dynamic>.from(json[json['target']]);
     }
     src = json['src'];
-    createdAt = DateTime.parse(json['createdAt']['date']);
+    if(json['createdAt'].containsKey('date')) {
+      createdAt = DateTime.parse(json['createdAt']['date']);
+    }else{
+      createdAt = DateTime.parse(json['createdAt']);
+    }
     sendAt = json['sendAt'];
     emiter = ContactEntity()..fromJson(json['emiter']);
     remiter = ContactEntity()..fromJson(json['remiter']);
@@ -49,7 +53,7 @@ class ProcesoEntity {
     return {
       'id': id,
       'src': src,
-      'createdAt': createdAt,
+      'createdAt': createdAt.toIso8601String(),
       'emiter': emiter.toJsonMini(),
       'remiter': remiter.toJsonMini(),
       'campaing': campaing.toJsonMini(),
@@ -65,7 +69,7 @@ class ProcesoEntity {
       'id': id,
       'target': target,
       'src': src,
-      'createdAt': createdAt,
+      'createdAt': createdAt.toIso8601String(),
       'sendAt': sendAt,
       'emiter': emiter.toJson(),
       'remiter': remiter.toJson(),

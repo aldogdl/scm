@@ -1,7 +1,9 @@
 import 'package:path/path.dart' as p;
 import '../../config/sng_manager.dart';
 import '../../vars/globals.dart';
-
+enum FoldStt {
+  stage, wait, tray, drash, sended
+}
 class ScmPaths {
 
   static final Globals _globals = getSngOf<Globals>();

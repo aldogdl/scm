@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:provider/provider.dart';
 
+import 'home_page.dart';
 import 'layout_page.dart';
 import 'login_page.dart';
 import '../providers/socket_conn.dart';
@@ -67,8 +68,11 @@ class ReloadHome extends StatelessWidget {
           }
         ),
         TextButton(
-          onPressed: () => context.read<ProcessProvider>().reloadMsgAcction = 'priorit',
-          child: const Texto(txt: ' Recargar ')
+          onPressed: () {
+            homePage(context);
+            // context.read<ProcessProvider>().reloadMsgAcction = 'priorit';
+          },
+          child: const Texto(txt: ' Inicia proceso automático ')
         )
       ],
     );
@@ -93,12 +97,6 @@ class ReloadHome extends StatelessWidget {
       _login(context);
       return;
     }
-
-    if(accion.toLowerCase().contains('recargando')) {
-      _reload(context);
-      return;
-    }
-
   }
 
   ///
@@ -111,12 +109,12 @@ class ReloadHome extends StatelessWidget {
   }
 
   ///
-  void _reload(BuildContext context) {
-
-    context.read<ProcessProvider>().cleanReloadMsgAcction();
-    MaterialPageRoute(
-      builder: (_) => const ReloadHome()
+  void homePage(BuildContext context) {
+  
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const HomePage()
+      )
     );
   }
-
 }

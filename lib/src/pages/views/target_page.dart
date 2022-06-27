@@ -6,7 +6,6 @@ import '../../entity/orden_entity.dart';
 import '../../entity/proceso_entity.dart';
 import '../../providers/process_provider.dart';
 import '../../widgets/tile_target_orden.dart';
-import '../../widgets/titulo_seccion.dart';
 
 class TargetPage extends StatelessWidget {
 
@@ -17,11 +16,6 @@ class TargetPage extends StatelessWidget {
 
     return Column(
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 15),
-          child: TituloSeccion(titulo: 'Target en Proceso'),
-        ),
-        const SizedBox(height: 8),
         Expanded(
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -38,8 +32,8 @@ class TargetPage extends StatelessWidget {
   Widget _determinarWidget(ProcesoEntity proc) {
 
     late Widget child;
-    switch (proc.src['class']) {
-      case 'Ordenes':
+    switch (proc.target) {
+      case 'orden':
         child = TileTargetOrden(orden: OrdenEntity()..fromJson(proc.data));
         break;
       default:
@@ -49,4 +43,5 @@ class TargetPage extends StatelessWidget {
     }
     return child;
   }
+
 }
