@@ -28,7 +28,7 @@ class TileContacts extends StatelessWidget {
   Widget build(BuildContext context) {
 
     bool isBold = (subTi.contains('curc')) ? true : false;
-    Color colorSubT = (isDark) ? const Color.fromARGB(255, 29, 29, 29) : Colors.blueGrey;
+    Color colorSubT = (isDark) ? const Color.fromARGB(255, 29, 29, 29) : const Color.fromARGB(255, 149, 151, 243);
     colorSubT = (subTi.contains('CURC')) ? Colors.white : colorSubT;
     
     return Padding(
@@ -38,7 +38,7 @@ class TileContacts extends StatelessWidget {
         children: [
           Texto(
             txt: title,
-            txtC: (isDark) ? const Color.fromARGB(255, 29, 29, 29) : Colors.grey,
+            txtC: colorSubT,
             isBold: (isDark) ? true : false
           ),
           const Divider(),

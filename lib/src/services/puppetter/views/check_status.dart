@@ -43,8 +43,8 @@ class _CheckStatusState extends State<CheckStatus> {
         const Divider(height: 5, color: Colors.green),
         const Texto(
           txt: 'Permite que el sistema revice que todo esté '
-          'correcto, y comenzar con la inicialización '
-          'del Servidor Central del Mensajería.',
+          'correcto para comenzar con la inicialización '
+          'del Servidor Central de Mensajería.',
           isCenter: true,
         ),
         const SizedBox(height: 10),

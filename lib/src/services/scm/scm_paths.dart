@@ -2,17 +2,14 @@ import 'package:path/path.dart' as p;
 import '../../config/sng_manager.dart';
 import '../../vars/globals.dart';
 enum FoldStt {
-  stage, wait, tray, drash, sended
+  stage, wait, tray, drash, sended, hist, werr
 }
 class ScmPaths {
 
   static final Globals _globals = getSngOf<Globals>();
   static p.Style estiloPlatform = p.Style.windows;
   static const String prefixFldWrk = '_wk_';
-  static const String prefixFldSended = 'sended_';
   static const String sF = '-';
-  static const String suf = '-child-';
-  static const String sufM = '-main-';
 
   /// Obtenemos el separador del sistema
   static String getSep() {

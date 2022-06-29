@@ -401,10 +401,10 @@ class BrowserTask {
 
   /// La lista de los elementos HTML de la App Whatsappweb
   static const mapConcep = <String, Map<String, String>>{
-
+    
     'bskContac' : {
-      'desc' : 'Caja de Búsqueda de Contactos',
-      'html' : '#side>div.uwk68>div>label>div>div._13NKt.copyable-text.selectable-text',
+      'desc' : 'Cuadro de texto para ingresar la búsqueda',
+      'html' : '#side>div.uwk68>div>div>div._16C8p>div>div._13NKt.copyable-text.selectable-text',
     },
     'btnDelCtc' : {
       'desc' : 'El boton de borrado en la caja de Búsqueda de Contactos',

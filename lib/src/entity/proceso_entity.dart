@@ -16,6 +16,7 @@ class ProcesoEntity {
   List<String> toSend = [];
   List<String> sended = [];
   List<String> noSend = [];
+  List<String> drash  = [];
 
   ///
   void fromJson(Map<String, dynamic> json) async {
@@ -24,13 +25,22 @@ class ProcesoEntity {
     target = json['target'];
     if(json.containsKey(json['target'])) {
       data = Map<String, dynamic>.from(json[json['target']]);
+    }else{
+      if(json.containsKey('data')) {
+        data = json['data'];
+      }
     }
     src = json['src'];
-    if(json['createdAt'].containsKey('date')) {
-      createdAt = DateTime.parse(json['createdAt']['date']);
-    }else{
+    if(json['createdAt'].runtimeType == String) {
       createdAt = DateTime.parse(json['createdAt']);
+    }else{
+      if(json['createdAt'].containsKey('date')) {
+        createdAt = DateTime.parse(json['createdAt']['date']);
+      }else{
+        createdAt = DateTime.parse(json['createdAt']);
+      }
     }
+
     sendAt = json['sendAt'];
     emiter = ContactEntity()..fromJson(json['emiter']);
     remiter = ContactEntity()..fromJson(json['remiter']);
@@ -43,6 +53,11 @@ class ProcesoEntity {
       sended = List<String>.from(json['sended']);
     }else{
       sended = [];
+    }
+    if(json.containsKey('drash')) {
+      drash = List<String>.from(json['drash']);
+    }else{
+      drash = [];
     }
     noSend = List<String>.from(json['noSend']);
   }
@@ -58,6 +73,7 @@ class ProcesoEntity {
       'remiter': remiter.toJsonMini(),
       'campaing': campaing.toJsonMini(),
       'toSend': toSend,
+      'noSend': noSend,
       'sended': sended,
     };
   }
@@ -78,6 +94,7 @@ class ProcesoEntity {
       'toSend': toSend,
       'sended': sended,
       'noSend': noSend,
+      'drash': drash,
       'data': data
     };
   }

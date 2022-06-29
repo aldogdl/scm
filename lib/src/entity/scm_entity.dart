@@ -32,6 +32,7 @@ class ScmEntity {
   ///
   void fromProvider(Map<String, dynamic> json) {
 
+    if(json.isEmpty){ return; }
     intents = json['intents'];
     idCamp = json['idCamp'];
     idReceiver = json['idReceiver'];

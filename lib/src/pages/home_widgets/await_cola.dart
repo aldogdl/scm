@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
+import 'package:provider/provider.dart';
 
-import 'cola_barr_div.dart';
 import '../../entity/scm_entity.dart';
 import '../../providers/process_provider.dart';
 import '../../services/get_content_files.dart';
@@ -10,6 +9,7 @@ import '../../vars/scroll_config.dart';
 import '../../widgets/my_tool_tip.dart';
 import '../../widgets/sin_data.dart';
 import '../../widgets/texto.dart';
+import 'cola_barr_div.dart';
 
 class AwaitCola extends StatefulWidget {
 
@@ -22,22 +22,22 @@ class AwaitCola extends StatefulWidget {
 class _AwaitColaState extends State<AwaitCola> {
 
   final ScrollController _ctrScrollAwait = ScrollController();
-  final ScrollController _ctrScrollTray = ScrollController();
   
   late ProcessProvider _proc;
   bool _isInit = false;
   List<ScmEntity> _lstAwait = [];
-  
+  int _cantEnAwait = 0;
+  int _totalFind = 0;
+
   @override
   void dispose() {
     _ctrScrollAwait.dispose();
-    _ctrScrollTray.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-   
+
     return Container(
       padding: const EdgeInsets.only(top: 10),
       margin: const EdgeInsets.symmetric(
@@ -53,34 +53,58 @@ class _AwaitColaState extends State<AwaitCola> {
       child: Column(
         children: [
           Expanded(
-            child: Selector<ProcessProvider, int>(
-              selector: (_, provi) => provi.enAwait,
-              builder: (_, cantEnAway, child) {
-                print('cambia aweit');
-                if(cantEnAway == 0) { return child!; }
-                return FutureBuilder(
-                  future: _getMsgs(),
-                  builder: (_, AsyncSnapshot snap) {
-
-                    if(snap.connectionState == ConnectionState.done) {
-                      if(_lstAwait.isNotEmpty) {
-                        return _buildLst();
-                      }
-                    }
-                    return child!;
-                  }
-                 );
-                
-              },
-              child: const SinData(
-                msg: '', main: 'nada en Cola', isDark: false,
-                withTit: false
-              ),
-            ),
+            child: _body(),
           ),
           const ColaBarrDiv()
         ],
+      )
+    );
+  }
+
+  ///
+  Widget _body() {
+
+    if(!_isInit) {
+      _isInit = true;
+      _proc = context.read<ProcessProvider>();
+      _proc.setTituloColaBarr = 'Cargando...';
+    }
+    
+    return Selector<ProcessProvider, int>(
+      selector: (_, provi) => provi.enAwait,
+      builder: (_, cantEnAway, child) {
+        
+        Future.delayed(const Duration(milliseconds: 150), (){
+          _proc.tituloColaBarr = '$_totalFind msg(s). Campaña ID.: ${_proc.enProceso.id}';
+        });
+        if(cantEnAway == 0) { return child!; }
+        if(cantEnAway != _cantEnAwait) {
+          _cantEnAwait = cantEnAway;
+          return _createList(child!);
+        }
+        return child!;
+      },
+      child: const SinData(
+        msg: '', main: 'nada en Cola', isDark: false,
+        withTit: false
       ),
+    );
+  }
+
+  ///
+  Widget _createList(Widget child) {
+
+    return FutureBuilder(
+      future: _getMsgs(),
+      builder: (_, AsyncSnapshot snap) {
+
+        if(snap.connectionState == ConnectionState.done) {
+          if(_lstAwait.isNotEmpty) {
+            return _buildLst();
+          }
+        }
+        return child;
+      }
     );
   }
 
@@ -98,47 +122,49 @@ class _AwaitColaState extends State<AwaitCola> {
           shrinkWrap: true,
           controller: _ctrScrollAwait,
           itemCount: _lstAwait.length,
-          itemBuilder: (_, int i) => _tileReceiver(_lstAwait[i])
+          itemBuilder: (_, int i) => _tileReceiver(_lstAwait[i], i+1)
         )
       )
     );
   }
 
   /// El diseño para el receptor dentro de la cola
-  Widget _tileReceiver(ScmEntity receiver) {
+  Widget _tileReceiver(ScmEntity receiver, int index) {
 
     return Column(
       children: [
         Row(
           children: [
-            if(receiver.idReceiver == _proc.receiverCurrent.idReceiver)
-              const SizedBox(
-                width: 15, height: 15,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                )
-              )
-            else
-              SizedBox(
-                width: 20, height: 15,
-                child: Checkbox(
-                  checkColor: Colors.white.withOpacity(0.5),
-                  visualDensity: VisualDensity.compact,
-                  side: const BorderSide(color: Colors.grey),
-                  fillColor: MaterialStateProperty.all(
-                    Colors.white.withOpacity(0.1)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 20, height: 15,
+                  child: Checkbox(
+                    checkColor: Colors.white.withOpacity(0.5),
+                    visualDensity: VisualDensity.compact,
+                    side: const BorderSide(color: Colors.grey),
+                    fillColor: MaterialStateProperty.all(
+                      Colors.white.withOpacity(0.1)
+                    ),
+                    key: Key('${receiver.idReceiver}'),
+                    value: !receiver.forceNotSend,
+                    onChanged: (val) {
+                      val = (val == null) ? false : val;
+                      val = !val;
+                      setState(() {
+                        receiver.forceNotSend = val ?? false;
+                      });
+                    }
                   ),
-                  key: Key('${receiver.idReceiver}'),
-                  value: !receiver.forceNotSend,
-                  onChanged: (val) {
-                    val = (val == null) ? false : val;
-                    val = !val;
-                    setState(() {
-                      receiver.forceNotSend = val ?? false;
-                    });
-                  }
                 ),
-              ),
+                const SizedBox(height: 2),
+                Texto(
+                  txt: '# $index', sz: 12, isCenter: true,
+                  txtC: const Color.fromARGB(255, 145, 255, 0)
+                ),
+              ],
+            ),
             const SizedBox(width: 8),
             MyToolTip(
               msg: '-> ${receiver.nombre}',
@@ -146,22 +172,26 @@ class _AwaitColaState extends State<AwaitCola> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Texto(
-                    txt: receiver.receiver.empresa,
-                    txtC: const Color.fromARGB(255, 149, 151, 243)
+                    txt: receiver.nombre,
+                    txtC: const Color.fromARGB(255, 224, 224, 224)
                   ),
                   Texto(
-                    txt: receiver.nombre, sz: 11,
-                    txtC: const Color.fromARGB(255, 224, 224, 224)
+                    txt: receiver.receiver.empresa, sz: 11,
+                    txtC: const Color.fromARGB(255, 149, 151, 243)
                   )
                 ],
               )
             ),
             const Spacer(),
-            Texto(
-              txt: (context.watch<ProcessProvider>().isPause)
-                ? 'En Pausa' : 'En cola', sz: 12,
-              txtC: const Color.fromARGB(255, 145, 255, 0)
-            )
+            Selector<ProcessProvider, bool>(
+              selector: (_, prov) => prov.isPause,
+              builder: (_, val, __) {
+                return Texto(
+                  txt: (val) ? 'En Pausa' : 'En cola', sz: 12,
+                  txtC: const Color.fromARGB(255, 145, 255, 0)
+                );
+              },
+            ),
           ],
         ),
         Divider(color: Colors.grey.withOpacity(0.5),)
@@ -173,23 +203,18 @@ class _AwaitColaState extends State<AwaitCola> {
   // ----------------CONTROLADOR--------------------
 
 
-  /// Recuperamos os mensajes de la campaña actual
+  /// Recuperamos los mensajes de la campaña actual
   Future<void> _getMsgs() async {
 
-    if(!_isInit) {
-      _isInit = true;
-      _proc = context.read<ProcessProvider>();
-      _proc.setTituloColaBarr = 'Cargando...';
-    }
     _lstAwait = [];
-    print('gastando recursos');
+
     final msgs = List<String>.from(_proc.enProceso.noSend);
+    _totalFind = msgs.length;
     if(msgs.isNotEmpty) {
       _lstAwait = await GetContentFile.getAllReceiverOfCampaings(
-        filesRecivers: msgs, fileNameCurrent: _proc.currentFileReveiver
+        filesRecivers: msgs, fileNameCurrent: _proc.currentFileReceiver
       );
     }
-    _proc.tituloColaBarr = '${msgs.length} msg(s). Campaña: ${_proc.enProceso.id}';
   }
-
+  
 }

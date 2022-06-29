@@ -25,11 +25,11 @@ class _TrayColaState extends State<TrayCola> {
 
   bool _isInit = false;
   List<Map<String, dynamic>> _lstCamps = [];
-  late Future _getCola;
+  late Future _getTray;
 
   @override
   void initState() {
-    _getCola = _recuperarTray();  
+    _getTray = _recuperarTray();
     super.initState();
   }
 
@@ -42,31 +42,21 @@ class _TrayColaState extends State<TrayCola> {
   @override
   Widget build(BuildContext context) {
 
-    return Selector<ProcessProvider, int>(
-      selector: (_, provi) => provi.enTray,
-      builder: (_, cantEnTray, child) {
-        
-        if(cantEnTray == 0) { 
-          if(_proc.receiverCurrent.idReceiver == 0) {
-            return child!;
+    return FutureBuilder(
+      future: _getTray,
+      builder: (_, AsyncSnapshot snap) {
+
+        if(snap.connectionState == ConnectionState.done) {
+          if(_lstCamps.isNotEmpty) {
+            return _buildLstCampaings();
           }
         }
-        return FutureBuilder(
-          future: _getCola,
-          builder: (_, AsyncSnapshot snap) {
-            if(snap.connectionState == ConnectionState.done) {
-              if(_lstCamps.isNotEmpty) {
-                return _buildLstCampaings();
-              }
-            }
-            return child!;
-          }
+
+        return const SinData(
+          msg: '', main: 'NADA EN LA BANDEJA',
+          withTit: false,
         );
-      },
-      child: const SinData(
-        msg: '', main: 'NADA EN LA BANDEJA',
-        withTit: false,
-      ),
+      }
     );
   }
 
@@ -121,7 +111,7 @@ class _TrayColaState extends State<TrayCola> {
   ///
   Widget _tipoTerminal(Map<String, dynamic> camp) {
 
-    final f = MyUtils.getFecha(fecha: camp['createdAt']);
+    final f = _extractFecha(camp['createdAt']);
     String empresa = camp['emiter']['empresa'].toUpperCase();
 
     if(empresa.length > 20) {
@@ -159,7 +149,7 @@ class _TrayColaState extends State<TrayCola> {
       ),
       child: Row(
         children: [
-          _avatar(camp['campaing']['priority'], camp['id']),
+          _avatar(camp['id']),
           Expanded(
             child: _dataCamp(camp),
           ),
@@ -169,7 +159,7 @@ class _TrayColaState extends State<TrayCola> {
   }
 
   ///
-  Widget _avatar(int prioridad, int idCamp) {
+  Widget _avatar(int idCamp) {
 
     return Column(
       children: [
@@ -203,7 +193,7 @@ class _TrayColaState extends State<TrayCola> {
                     borderRadius: BorderRadius.circular(8)
                   ),
                   child: Texto(
-                    txt: '$prioridad', txtC: Colors.white, sz: 10,
+                    txt: '$idCamp', txtC: Colors.white, sz: 10,
                   ),
                 )
               )
@@ -217,13 +207,7 @@ class _TrayColaState extends State<TrayCola> {
   ///
   Widget _dataCamp(Map<String, dynamic> camp) {
 
-    var date = DateTime.now();
-    if(camp['createdAt'].runtimeType == String) {
-      date = DateTime.parse(camp['createdAt']);
-    }else{
-      date = camp['createdAt'];
-    }
-    final f = MyUtils.getFecha(fecha: date);
+    final f = _extractFecha(camp['createdAt']);
     String empresa = camp['emiter']['empresa'].toUpperCase();
     if(empresa.length > 25) {
       empresa = empresa.substring(0, 25);
@@ -238,7 +222,8 @@ class _TrayColaState extends State<TrayCola> {
       campaing = campaing.substring(0, cut);
       campaing = '$campaing...';
     }
-
+    final sended = camp['toSend'].length - camp['noSend'].length;
+    
     return Container(
       height: 38,
       padding: const EdgeInsets.only(
@@ -263,7 +248,7 @@ class _TrayColaState extends State<TrayCola> {
                 ),
               ),
               Texto(
-                txt: '${camp['sended'].length}-${camp['toSend'].length}',
+                txt: '$sended-${camp['toSend'].length}',
                 sz: 11, txtC: const Color.fromARGB(255, 31, 40, 44),
                 isBold: (camp['id'] == _proc.enProceso.id) ? true : false,
               )
@@ -292,7 +277,7 @@ class _TrayColaState extends State<TrayCola> {
                 ),
                 const Spacer(),
                 Texto(
-                  txt: 'MID: ${camp['id']}', sz: 11.5,
+                  txt: 'Prio.: ${camp['campaing']['priority']}', sz: 11.5,
                   txtC: const Color.fromARGB(255, 63, 67, 121)
                 ),
               ],
@@ -304,12 +289,27 @@ class _TrayColaState extends State<TrayCola> {
   }
 
   ///
+  Map<String, dynamic> _extractFecha(dynamic fecha) {
+
+    var date = DateTime.now();
+    if(fecha.runtimeType == String) {
+      date = DateTime.parse(fecha);
+    }else{
+      date = fecha['createdAt'];
+    }
+    return MyUtils.getFecha(fecha: date);
+  }
+
+  ///
   Future<void> _recuperarTray() async {
 
     if(!_isInit) {
       _isInit = true;
       _proc = context.read<ProcessProvider>();
     }
-    _lstCamps = await GetContentFile.getAllCampaingsWithDataMini();
+    if(_lstCamps.length != _proc.enTray) {
+      _lstCamps = await GetContentFile.getAllCampaingsWithDataMini();
+    }
   }
+
 }

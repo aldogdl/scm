@@ -1,9 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
 
-import 'my_http.dart';
-import '../entity/contacts_entity.dart';
-import '../entity/scm_file.dart';
 import '../entity/proceso_entity.dart';
 import '../entity/scm_entity.dart';
 import '../services/scm/scm_paths.dart';
@@ -28,20 +25,16 @@ class GetContentFile {
 
     final res = await getPathFileWorking(folder: folder);
     if(!res['has'] && res['uri'].isNotEmpty) {
+
       // Le ponemos el prefixo de trabajo, en caso de no estar ya enviado.
-      if(!res['uri'].toString().contains(ScmPaths.prefixFldSended)) {
-        final newPath = ScmPaths.setPrefixWorking(res['uri']);
-        final file = File(res['uri']);
-        if(file.existsSync()) {
-          file.renameSync(newPath);
-        }
-        return newPath;
+      final newPath = ScmPaths.setPrefixWorking(res['uri']);
+      final file = File(res['uri']);
+      if(file.existsSync()) {
+        file.renameSync(newPath);
       }
+      return newPath;
     }
-    if(!res['uri'].toString().contains(ScmPaths.prefixFldSended)) {
-      return res['uri'];
-    }
-    return '';
+    return res['uri'];
   }
 
   /// [r] Buscamos el archivo el cual estamos trabajando
@@ -61,14 +54,12 @@ class GetContentFile {
           if(!msgs.first.path.contains(ScmPaths.prefixFldWrk)) {
             List<String> todos = [];
             for (var i = 0; i < msgs.length; i++) {
-              if(!msgs[i].path.contains(ScmPaths.prefixFldSended)) {
-                if(msgs[i].path.endsWith('.json')) {
-                  uri = msgs[i].path;
-                  todos.add(uri);
-                  if(msgs[i].path.contains(ScmPaths.prefixFldWrk)) {
-                    isNew = false;
-                    break;
-                  }
+              if(msgs[i].path.endsWith('.json')) {
+                uri = msgs[i].path;
+                todos.add(uri);
+                if(msgs[i].path.contains(ScmPaths.prefixFldWrk)) {
+                  isNew = false;
+                  break;
                 }
               }
             }
@@ -132,7 +123,7 @@ class GetContentFile {
       final file = File(pathWrk);
       file.writeAsStringSync( json.encode(content) );
       // Pasamos el archivo de datos principal de STAGE a la carpera de TRAY
-      await moveFileWorking(from: FoldStt.stage, to: FoldStt.tray);
+      await moveFileWorkingAndRemovePrefix(from: FoldStt.stage, to: FoldStt.tray);
       return;
     }
     return;
@@ -321,16 +312,12 @@ class GetContentFile {
     
     // Recorremos la lista para recuperar los nombres de los archivos
     for (var i = 0; i < campas.length; i++) {
-
-      if(!campas[i].path.contains(ScmPaths.prefixFldSended)) {
-
-        findF = ScmPaths.extractNameFile(campas[i].path);
-        if(findF.startsWith(ScmPaths.prefixFldWrk)) {
-          findF = findF.replaceFirst(ScmPaths.prefixFldWrk, '').trim();
-          current = findF;
-        }
-        archivos.add(findF.split(ScmPaths.sF));
+      findF = ScmPaths.extractNameFile(campas[i].path);
+      if(findF.startsWith(ScmPaths.prefixFldWrk)) {
+        findF = findF.replaceFirst(ScmPaths.prefixFldWrk, '').trim();
+        current = findF;
       }
+      archivos.add(findF.split(ScmPaths.sF));
     }
     
     if(archivos.isEmpty) {
@@ -503,21 +490,26 @@ class GetContentFile {
     return {};
   }
 
-  /// Le quitamos la seña de archivo trabajando y lo movemos al folder TRAY
-  /// y colocamos todos los paths necesarios al procesoEntity y al scmEntity
-  static Future<void> moveFileWorking({
-    required FoldStt from, required FoldStt to
+  /// [r] Le quitamos la seña de archivo trabajando y lo movemos al folder indicado
+  static Future<void> moveFileWorkingAndRemovePrefix({
+    required FoldStt from, required FoldStt to,
   }) async {
 
-    final pathStage = await getPathFileWorking(folder: from);
-    //ScmFile fileS = ScmFile(pathOrigin: pathStage['uri']);
-    String pathTo = ''; //fileS.convertPathTo(to, pathStage['uri'], withoutWorking: true);
+    final pathFrom = await getPathFileWorking(folder: from);
 
-    File fileContent = File(pathStage['uri']);
-    Map<String, dynamic> content = await getMsgToMap(pathStage['uri']);
-    fileContent.deleteSync();
-    fileContent = File(pathTo);
-    fileContent.writeAsStringSync( json.encode(content) );
+    final file = File(pathFrom['uri']);
+    if(file.existsSync()) {
+
+      String fileTo = ScmPaths.removePrefixWork(pathFrom['uri']);
+      final pathTo = GetPaths.getPathsFolderTo(getFolder(to));
+      if(pathTo != null && pathTo.existsSync()) {
+        
+        file.renameSync('${pathTo.path}${ScmPaths.getSep()}$fileTo');
+        if(file.existsSync()) {
+          file.deleteSync();
+        }
+      }
+    }
   }
 
   /// [r] Usado para extrar los datos minimos del archivo de campañas para
@@ -533,19 +525,16 @@ class GetContentFile {
 
       for (var i = 0; i < lstF.length; i++) {
         List<String> partes = lstF[i].path.split(GetPaths.getSep());
-        if(!partes.last.contains(ScmPaths.prefixFldSended)) {
-
-          final proc = ProcesoEntity();
-          proc.fromJson(
-            await getContentByFileAndFolder(
-              fileName: partes.last, folder: FoldStt.tray
-            )
-          );
-          if(partes.last.contains(ScmPaths.prefixFldWrk)) {
-            current = proc.toJsonMini();
-          }else{
-            lstCamps.add(proc.toJsonMini());
-          }
+        final proc = ProcesoEntity();
+        proc.fromJson(
+          await getContentByFileAndFolder(
+            fileName: partes.last, folder: FoldStt.tray
+          )
+        );
+        if(partes.last.contains(ScmPaths.prefixFldWrk)) {
+          current = proc.toJsonMini();
+        }else{
+          lstCamps.add(proc.toJsonMini());
         }
       }
 
@@ -634,78 +623,7 @@ class GetContentFile {
     return false;
   }
 
-  /// Recuperamos la entidad en proceso desde el archivo que se esta trabajando
-  static Future<ProcesoEntity> getFileWorkingEnProceso(String pathFile) async {
-
-    final content = await getMsgToMap(pathFile);
-    return ProcesoEntity()..fromJson(content);
-  }
-
-  ///
-  static Future<String> getPathOfContacto(int idContac) async {
-
-    Directory? foldCtcs = GetPaths.getPathsFolderTo('data_ctcs');
-    
-    File ctac = File('${foldCtcs!.path}${GetPaths.getSep()}$idContac.json');
-    if(!ctac.existsSync()) {
-      // Descargarlo desde servidor remoto.
-      await _downloadDataContact(idContac, false);
-    }
-
-    return '${foldCtcs.path}${GetPaths.getSep()}$idContac.json';
-  }
-
-  ///
-  static Future<ContactEntity> getFileOfContacto(int idContac) async {
-
-    ContactEntity ctcEntity = ContactEntity();
-    Directory? foldCtcs = GetPaths.getPathsFolderTo('data_ctcs');
-    
-    File ctac = File('${foldCtcs!.path}${GetPaths.getSep()}$idContac.json');
-    if(!ctac.existsSync()) {
-
-      // Descargarlo desde servidor remoto.
-      return await _downloadDataContact(idContac, true) ?? ctcEntity;
-
-    }else{
-      ctcEntity.fromJson(
-        Map<String, dynamic>.from(json.decode(ctac.readAsStringSync()))
-      );
-    }
-
-    return ctcEntity;
-  }
-
-  ///
-  static Future<ContactEntity?> _downloadDataContact(int idCtc, bool getMap) async {
-
-    Map<String, dynamic> content = {};
-    ContactEntity ctcEntity = ContactEntity();
-    Directory? foldCtcs = GetPaths.getPathsFolderTo('data_ctcs');
-
-    String path = await GetPaths.getUri('get_contacto_byid');
-    await MyHttp.get('$path$idCtc/');
-    
-    if(!MyHttp.result['abort']) {
-      content = Map<String, dynamic>.from( MyHttp.result['body'] );
-      ctcEntity.fromServer(content);
-      File ctac = File('${foldCtcs!.path}${GetPaths.getSep()}$idCtc.json');
-      ctac.writeAsStringSync(json.encode(ctcEntity.toJson()));
-    }
-    return (getMap) ? ctcEntity : null;
-  }
-
-  /// Guardamos el log en el archivo del mensaje en proceso
-  static Future<void> setMsgInFile(
-    String pathFile, Map<String, dynamic> data
-  ) async {
-
-    File content = File(pathFile);
-    const encode = JsonEncoder();
-    content.writeAsStringSync( encode.convert(data) );
-  }
-
-  /// Guardamos la data del archivo y el folder indicado
+  /// [r] Guardamos la data del archivo y el folder indicado
   static Future<bool> saveData(
     String filename, FoldStt fld, Map<String, dynamic> data
   ) async {
@@ -721,17 +639,6 @@ class GetContentFile {
       }
     }
     return false;
-  }
-
-  /// Guardamos el log en el archivo del mensaje en proceso
-  static Future<void> changeSttOrdenToPapelera(
-    Map<String, dynamic> elMsgCurrent
-  ) async {
-
-    // y cambiar de version
-    // List sabe = [];
-    // sabe.firstWhere((element) => element['id'])
-    // elMsgCurrent['task']
   }
 
   ///
@@ -762,66 +669,6 @@ class GetContentFile {
     }
 
     return mensajes;
-  }
-
-  ///
-  static Future<bool> changeMsgFromChildToMain({
-    required String filename
-  }) async {
-
-    final waitFld = GetPaths.getPathsFolderTo(getFolder(FoldStt.wait));
-    if(waitFld != null) {
-      if(waitFld.existsSync()) {
-        File fromFile = File(
-          '${waitFld.path}${GetPaths.getSep()}$filename'
-        );
-        final fileS = ScmFile();
-        // cambiamos el main por el child
-        filename = filename.replaceFirst(fileS.suf, fileS.sufM);
-        fromFile.renameSync('${waitFld.path}${GetPaths.getSep()}$filename');
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /// Actualizamos el archivo principal de la campaña
-  static Future<void> updateSendersInFileData(Map<String, dynamic> data, String pathFile) async {
-
-    final file = File(pathFile);
-    if(file.existsSync()) {
-      var content = Map<String, dynamic>.from(json.decode( file.readAsStringSync() ));
-      content['toSend'] = data['toSend'];
-      content['sended'] = data['sended'];
-      content['noSend'] = data['noSend'];
-      file.writeAsStringSync( json.encode(content) );
-    }
-  }
-
-  /// Ponemos el archivo de la data principal del mensaje como enviado
-  static Future<void> putFileDataWorkingAsSended(ScmEntity scm) async {
-
-    final fileS = ScmFile(pathOrigin: scm.data);
-    final file  = File(fileS.pathOrigin);
-    try {
-      file.renameSync('${fileS.pathSinFile}${fileS.sep}${fileS.prefixFldSended}${fileS.nameFile}');
-    } catch (_) {}
-
-  }
-
-  ///
-  static Future<ScmFile?> getScmFileWorking({
-    FoldStt folder = FoldStt.tray
-  }) async {
-
-    ScmFile fileS = ScmFile();
-    final c = await GetContentFile.getContentFileWorking(folder: folder);
-    if(c.isNotEmpty) {
-      fileS.fromFileCampaing(c);
-      fileS.createNameFile();
-      return fileS;
-    }
-    return null;
   }
 
 }

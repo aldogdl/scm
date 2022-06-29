@@ -43,7 +43,17 @@ class ToolsBarr extends StatelessWidget {
                 isActive: false,
                 icono: Icons.refresh,
                 tip: 'Refrescar',
-                fnc: () => _refrezcarPagina(context, procProvR)
+                fnc: () async {
+                  procProvW.setReloadMsgAcction('En espera de Mensajes');
+                  procProvW.cleanCampaingCurrent();
+                  final nav = Navigator.of(context);
+                  await procProvW.initCronFolderLocal();
+                  procProvW.isRefresh = true;
+                  Future.delayed(const Duration(microseconds: 1000), (){
+                    procProvW.isRefresh = false;
+                  });
+                  if(nav.canPop()) { nav.pop(); }
+                }
               ),
               ..._divisor(),
               Stack(
@@ -246,10 +256,5 @@ class ToolsBarr extends StatelessWidget {
     );
   }
 
-  ///
-  void _refrezcarPagina(BuildContext context, ProcessProvider procProv) {
 
-    procProv.reloadMsgAcction = 'Revisando prioridades';
-    Navigator.of(context).pop();
-  }
 }

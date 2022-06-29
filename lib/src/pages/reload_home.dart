@@ -67,13 +67,6 @@ class ReloadHome extends StatelessWidget {
             );
           }
         ),
-        TextButton(
-          onPressed: () {
-            homePage(context);
-            // context.read<ProcessProvider>().reloadMsgAcction = 'priorit';
-          },
-          child: const Texto(txt: ' Inicia proceso automático ')
-        )
       ],
     );
   }
@@ -93,8 +86,15 @@ class ReloadHome extends StatelessWidget {
     if(!context.read<SocketConn>().isLoged) {
       _login(context);
     }
-    if(accion.toLowerCase().contains('autenticarte')) {
-      _login(context);
+    if(accion.toLowerCase().contains('iniciando')) {
+      homePage(context);
+      return;
+    }
+    if(accion.toLowerCase().contains('campaña')) {
+      final nav = Navigator.of(context);
+      if(nav.canPop()) {
+        nav.pop();
+      }
       return;
     }
   }
@@ -110,7 +110,8 @@ class ReloadHome extends StatelessWidget {
 
   ///
   void homePage(BuildContext context) {
-  
+    
+    context.read<ProcessProvider>().setReloadMsgAcction('Iniciando Envio');
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => const HomePage()

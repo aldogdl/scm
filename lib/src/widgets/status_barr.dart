@@ -40,6 +40,7 @@ class StatusBarr extends StatelessWidget {
   Widget _body(BuildContext context, bool isLoged) {
 
     final proc = context.read<ProcessProvider>();
+    final procW = context.watch<ProcessProvider>();
     final fecha = MyUtils.getFecha(fecha: proc.initRR);
 
     return Row(
@@ -62,16 +63,16 @@ class StatusBarr extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           _btnIconAndTxt(
-            icono: (context.watch<ProcessProvider>().timer.isOdd)
+            icono: (!procW.isStopCronFles)
             ? Icons.remove_red_eye_outlined : Icons.maximize_outlined,
-            txt: '${context.watch<ProcessProvider>().timer}',
+            txt: '${procW.timer}',
             tip: 'Número de Revisión Local / ${proc.cadaL} Seg.',
             fnc: (){}
           ),
           _btnIconAndTxt(
-            icono: (context.watch<ProcessProvider>().timerS.isEven)
+            icono: (!procW.isStopCronStage)
             ? Icons.remove_red_eye_outlined : Icons.maximize_outlined,
-            txt: '${context.watch<ProcessProvider>().timerS}',
+            txt: '${procW.timerS}',
             tip: 'Número de Revisión al Stage / ${proc.cadaS} Seg.',
             fnc: (){}
           ),
