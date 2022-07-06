@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:scm/src/pages/login_page.dart';
-import 'package:scm/src/pages/reload_home.dart';
 
+import 'src/pages/login_page.dart';
+import 'src/pages/reload_home.dart';
 import 'src/services/puppetter/providers/browser_provider.dart';
 import 'src/providers/process_provider.dart';
 import 'src/providers/socket_conn.dart';
@@ -16,8 +16,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   doWhenWindowReady(() {
-    appWindow.minSize = const Size(360.0, 750.0);
-    appWindow.maxSize = const Size(360.0, 768.0);
+    final w = appWindow.size.width * 0.27;
+    appWindow.minSize = Size(w, 750.0);
+    appWindow.maxSize = Size(w, 768.0);
     appWindow.alignment = Alignment.topLeft;
     appWindow.maximize();
     appWindow.show();

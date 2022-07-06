@@ -546,7 +546,10 @@ class _LoginPageState extends State<LoginPage> {
     String uri = await GetPaths.getFileByPath('connpass');
     final regs = File(uri);
     if (regs.existsSync()) {
-      return Map<String, dynamic>.from(json.decode(regs.readAsStringSync()));
+      final content = regs.readAsStringSync();
+      if(content.isNotEmpty) {
+        return Map<String, dynamic>.from(json.decode(content));
+      }
     }
     return {};
   }
