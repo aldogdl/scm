@@ -48,6 +48,9 @@ class ToolsBarr extends StatelessWidget {
                   procProvW.cleanCampaingCurrent();
                   final nav = Navigator.of(context);
                   await procProvW.initCronFolderLocal();
+                  if(procProvW.isStopCronStage) {
+                    procProvW.initCronFolderStage();
+                  }
                   procProvW.isRefresh = true;
                   Future.delayed(const Duration(microseconds: 1000), (){
                     procProvW.isRefresh = false;

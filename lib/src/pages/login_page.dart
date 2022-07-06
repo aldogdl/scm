@@ -522,11 +522,14 @@ class _LoginPageState extends State<LoginPage> {
     Map<String, dynamic> users = {};
     bool addUser = true;
     if(regs.existsSync()) {
-      users = Map<String, dynamic>.from(json.decode(regs.readAsStringSync()));
-      if(users.isNotEmpty) {
-        if(users.containsKey(data['password'])) {
-          users[data['password']] = _globals.user.userToJson();
-          addUser = false;
+      final content = regs.readAsStringSync();
+      if(content.isNotEmpty) {
+        users = Map<String, dynamic>.from(json.decode(content));
+        if(users.isNotEmpty) {
+          if(users.containsKey(data['password'])) {
+            users[data['password']] = _globals.user.userToJson();
+            addUser = false;
+          }
         }
       }
     }
