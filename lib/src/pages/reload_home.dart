@@ -40,10 +40,13 @@ class ReloadHome extends StatelessWidget {
         ),
         const Texto(txt: 'SERVIDOR CENTRAL DE MENSAJERÍA', txtC: Colors.green),
         const Divider(),
-        const Texto(
-          txt: 'Por el momento no hay nada por ser enviado '
-          'estoy a la espera de cualquier solicitud.',
-          isCenter: true,
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: Texto(
+            txt: 'Por el momento no hay nada por ser enviado '
+            'estoy a la espera de cualquier solicitud.',
+            isCenter: true,
+          )
         ),
         const SizedBox(height: 20),
         Icon(

@@ -38,6 +38,8 @@ class _SendToReceiverState extends State<SendToReceiver> {
   double _pixPerTask = 0;
   double _pixPerTaskFinish = 0;
   Map<String, dynamic> _simula = {};
+  int _idRegDb = 0;
+
   int _indexLastCurcTester = 0;
   // Colocamos el msg utilizado para enviarlo al chat de Contactos interno
   List<String> _msgC = [];
@@ -303,11 +305,16 @@ class _SendToReceiverState extends State<SendToReceiver> {
           _proc.lstTestings = List<Map<String, dynamic>>.from(testers['testers']);
         }
       }
-      final rnd = Random();
+      
       int indx = -1;
-      do {
-        indx = rnd.nextInt(_proc.lstTestings.length);
-      } while (_indexLastCurcTester == indx);
+      if(_proc.lstTestings.length > 1) {
+        final rnd = Random();
+        do {
+          indx = rnd.nextInt(_proc.lstTestings.length);
+        } while (_indexLastCurcTester == indx);
+      }else{
+        indx = 0;
+      }
       _indexLastCurcTester = indx;
       scm.curc = _proc.lstTestings[indx]['curc'];
       scm.nombre = _proc.lstTestings[indx]['nombre'];
@@ -316,41 +323,55 @@ class _SendToReceiverState extends State<SendToReceiver> {
         _proc.lstTestings = [];
       }
     }
-
-    String curcTo = scm.curc;
-    if(scm.receiver.cargo == 'addCtac') {
-      curcTo = BrowserTask.chatContacts;
-    }
     _progressTasks.value = 0;
     _progressFinished.value = 0;
 
+    String curcTo = scm.curc;    
+    if(scm.receiver.cargo == 'addCtac') {
+      curcTo = BrowserTask.chatContacts;
+      if(_msgC.isEmpty) {
+        await _buildMsgContacts();
+      }
+    }else{
+      if(_idRegDb == 0) {
+        _msgProgreso.value = 'Construyendo Registro local';
+        await _buildRegInDbLocal();
+      }
+    }
+
+    try {
+      _progressTasks.value = _progressTasks.value + _pixPerTask;
+    } catch (e) {
+      return;
+    }
+
     // Buscamos el contacto.
     if(_simula.isNotEmpty) {
-
-      _msgProgreso.value = 'Buscando Contacto';
-      await _simulaProceso('bskContac');
-
+      await _simulaProceso('bskContac', curcTo: curcTo);
     }else{
-
-      _msgProgreso.value = 'Buscando Contacto';
-      BrowserTask.buscarContacto(txt: curcTo).listen((event) async {
-        
-        if(event.startsWith('ERROR')) {
-          await _registrarError(event);
-        }else{
-
-          if(event == 'ok') {
-            try {
-              _progressTasks.value = _progressTasks.value + _pixPerTask;
-            } catch (e) {
-              return;
-            }
-            await BrowserTask.wait(500);
-            await _entrarAlChat();
-          }
-        }
-      });
+      await _buscarContacto(curcTo);
     }
+  }
+
+  ///
+  Future<void> _buscarContacto(String curcTo) async {
+    
+    _msgProgreso.value = 'Buscando Contacto';
+
+    BrowserTask.buscarContacto(txt: curcTo).listen((event) async {
+
+      if(event == 'ok') {
+        try {
+          _progressTasks.value = _progressTasks.value + _pixPerTask;
+        } catch (e) {
+          return;
+        }
+        await BrowserTask.wait(500);
+        await _entrarAlChat();
+        return;
+      }
+      await _registrarError(event);
+    });
   }
 
   ///
@@ -369,31 +390,28 @@ class _SendToReceiverState extends State<SendToReceiver> {
       curcTo = BrowserTask.chatContacts;
       isGrupo = true;
     }
-    
+
     _msgProgreso.value = 'Entrando al Chat';
+    await BrowserTask.wait(250);
     if(_simula.isNotEmpty) {
 
       await _simulaProceso('chatDeCtc');
     }else{
 
-      BrowserTask.entrarAlChat(curcTo, isGrup: isGrupo)
-      .listen((event) async {
+      BrowserTask.entrarAlChat(curcTo, isGrup: isGrupo).listen((event) async {
 
-        if(event.startsWith('ERROR')) {
-          await _registrarError(event);
-        }else{
+        if(event == 'ok') {
 
-          if(event == 'ok') {
-
-            try {
-              _progressTasks.value = _progressTasks.value + _pixPerTask;
-            } catch (e) {
-              return;
-            }
-            await BrowserTask.wait(500);
-            await _escribirMsg();
+          try {
+            _progressTasks.value = _progressTasks.value + _pixPerTask;
+          } catch (e) {
+            return;
           }
+          await BrowserTask.wait(500);
+          await _escribirMsg();
+          return;
         }
+        await _registrarError(event);
       });
     }
   }
@@ -419,27 +437,19 @@ class _SendToReceiverState extends State<SendToReceiver> {
         isContac: (_msgC.isNotEmpty) ? true : false
       );
 
-      List<String> msgSend = (_msgC.isNotEmpty)
-        ? _msgC : _getMsgOfReceiver();
-
+      List<String> msgSend = (_msgC.isNotEmpty) ? _msgC : _getMsgOfReceiver();
+      
       BrowserTask.escribirMsg(msgSend).listen((event) async {
 
-        if(event.startsWith('ERROR')) {
-          await _registrarError(event);
-        }else{
-
-          if(event == 'ok') {
-            _msgC = [];
-            try {
-              _progressTasks.value = _progressTasks.value + _pixPerTask;
-            } catch (e) {
-              return;
-            }
-            BrowserTask.comparaCon = [];
-            await BrowserTask.wait(500);
-            await _enviarMsg();
-          }
+        if(event == 'ok') {
+          _msgC = [];
+          try {
+            _progressTasks.value = _progressTasks.value + _pixPerTask;
+          } catch (_) {}
+          await _enviarMsg();
+          return;
         }
+        await _registrarError(event);
       });
     }
   }
@@ -469,12 +479,19 @@ class _SendToReceiverState extends State<SendToReceiver> {
 
     }else{
 
-      String event = await BrowserTask.sendMensaje();
+      String event = await BrowserTask.ultimaRevicionAntesDeEnviar();
+
       if(event.startsWith('ERROR')) {
         await _registrarError(event);
       }else{
 
-        if(event == 'ok') {
+        BrowserTask.comparaCon = [];
+        await BrowserTask.wait(500);
+        event = await BrowserTask.sendMensaje();
+
+        if(event.startsWith('ERROR')) {
+          await _registrarError(event);
+        }else{
           try {
             _progressTasks.value = _progressTasks.value + _pixPerTask;
           } catch (_) {}
@@ -576,6 +593,8 @@ class _SendToReceiverState extends State<SendToReceiver> {
       _refreshPage();
       return;
     }
+    ToServer.clean();
+    _idRegDb = 0;
     String stt = 'i';
     FoldStt fold = FoldStt.sended;
     if(toDrash) {
@@ -585,14 +604,14 @@ class _SendToReceiverState extends State<SendToReceiver> {
     List<String> taskFinish = ['Deteniendo CRON FILES'];
 
     taskFinish.add('Enviando a PAPELERA');
-    taskFinish.add('Registrando B.D.');
+    taskFinish.add('Actualizando Base de Datos.');
     taskFinish.add('Receiver a Sended.');
     taskFinish.add('Guardando datos en cache.');
     taskFinish.add('Revisando prioridades.');
-
     _pixPerTaskFinish = (_progressTotal / taskFinish.length);
+
     _msgProgreso.value = taskFinish[0];
-    _progressFinished.value = _pixPerTaskFinish * 1;
+    _progressFinished.value = _progressFinished.value + _pixPerTaskFinish;
     await _proc.stopCronFiles();
 
     if(_proc.receiverCurrent.errores.isNotEmpty) {
@@ -606,48 +625,52 @@ class _SendToReceiverState extends State<SendToReceiver> {
 
     if(stt == 'p') {
       _msgProgreso.value = taskFinish[1];
-      _progressFinished.value = _pixPerTaskFinish * 1;
-      await BrowserTask.wait(700);
+      _progressFinished.value = _progressFinished.value + _pixPerTaskFinish;
+      await BrowserTask.wait(500);
+      await ToServer.updateRegInBD(_idRegDb, stt);
+      _msgProgreso.value = taskFinish[2];
+      _progressFinished.value = _progressFinished.value + _pixPerTaskFinish;
     }
 
-    _msgProgreso.value = taskFinish[2];
-    _progressFinished.value = _pixPerTaskFinish * 2;
-
-    await ToServer.regEnvioInBD(
-      _proc.receiverCurrent.idCamp,
-      _proc.receiverCurrent.idReceiver, stt: stt
+    _msgProgreso.value = taskFinish[3];
+    _progressFinished.value = _progressFinished.value + _pixPerTaskFinish;
+    _proc.enProceso.noSend.remove(_proc.currentFileReceiver);
+    if(stt == 'p') {
+      _proc.enProceso.drash.add(_proc.currentFileReceiver);
+    }else{
+      _proc.enProceso.sended.add(_proc.currentFileReceiver);
+    }
+    await GetContentFile.saveData(
+      ScmPaths.extractNameFile(_proc.currentFileProcess),
+      FoldStt.tray, _proc.enProceso.toJson(),
     );
+    await BrowserTask.wait(700);
 
-    if(!ToServer.result['abort']){
-      ToServer.clean();
+    _msgProgreso.value = taskFinish[4];
+    _progressFinished.value = _progressFinished.value + _pixPerTaskFinish;
+    await GetContentFile.changeDeFolder(
+      filename: _proc.currentFileReceiver, 
+      from: FoldStt.wait, to: fold
+    );
+    
+    _msgProgreso.value = taskFinish[5];
+    _progressFinished.value = _progressFinished.value + _pixPerTaskFinish;
+    await BrowserTask.wait(500);
+    _proc.currentFileReceiver = '';
+    _progressFinished.value = _progressTotal;
+    _proc.buscamosCampaniaPrioritaria();
+  }
 
-      _msgProgreso.value = taskFinish[4];
-      _progressFinished.value = _pixPerTaskFinish * 4;
-      _proc.enProceso.noSend.remove(_proc.currentFileReceiver);
-      if(stt == 'p') {
-        _proc.enProceso.drash.add(_proc.currentFileReceiver);
-      }else{
-        _proc.enProceso.sended.add(_proc.currentFileReceiver);
-      }
-      await GetContentFile.saveData(
-        ScmPaths.extractNameFile(_proc.currentFileProcess),
-        FoldStt.tray, _proc.enProceso.toJson(),
-      );
-      await BrowserTask.wait(700);
+  ///
+  Future<void> _buildRegInDbLocal() async {
 
-      _msgProgreso.value = taskFinish[3];
-      _progressFinished.value = _pixPerTaskFinish * 3;
-      await GetContentFile.changeDeFolder(
-        filename: _proc.currentFileReceiver, 
-        from: FoldStt.wait, to: fold
-      );
-      
-      _msgProgreso.value = taskFinish[5];
-      _progressFinished.value = _pixPerTaskFinish * 5;
-      await BrowserTask.wait(500);
-      _proc.currentFileReceiver = '';
-      _progressFinished.value = _progressTotal;
-      _proc.buscamosCampaniaPrioritaria();
+    await ToServer.buildRegInBD(
+      _proc.receiverCurrent.idCamp, _proc.receiverCurrent.idReceiver
+    );
+    if(!ToServer.result['abort']) {
+      _idRegDb = ToServer.result['body'];
+    }else{
+      _registrarError(BrowserTask.lstErrs['buildReg'][0]);
     }
   }
 
@@ -672,11 +695,11 @@ class _SendToReceiverState extends State<SendToReceiver> {
         _msgC[i] = _msgC[i].replaceFirst('_curc_', rec.curc);
       }
     }
-
     rec.receiver.cargo = 'addCtac';
   }
 
-  ///
+  /// Formateamos las variables generales del mensaje como el 
+  /// auto e id de la orden
   Future<void> _formatearMsg() async {
 
     switch (_proc.enProceso.target) {
@@ -685,23 +708,6 @@ class _SendToReceiverState extends State<SendToReceiver> {
         break;
       default:
     }
-  }
-
-  /// Le colocamos los datos personales al mensaje
-  List<String> _getMsgOfReceiver() {
-    
-    var partes = List<String>.from(_proc.msgCurrent);
-
-    for (var i = 0; i < partes.length; i++) {
-
-      if(partes[i].contains('_idCtc_')){
-        partes[i] = partes[i].replaceAll('_idCtc_', '${_proc.receiverCurrent.idReceiver}');
-      }
-      if(partes[i].contains('_nombre')) {
-        partes[i] = partes[i].replaceAll('_nombre', _proc.receiverCurrent.nombre);
-      }
-    }
-    return partes;
   }
 
   /// Sustituimos solo el auto y el IdOrden el cual es general
@@ -726,6 +732,23 @@ class _SendToReceiverState extends State<SendToReceiver> {
     _proc.setMsgCurrent(List<String>.from(partes));
   }
 
+  /// Le colocamos los datos personales al mensaje
+  List<String> _getMsgOfReceiver() {
+    
+    var partes = List<String>.from(_proc.msgCurrent);
+    for (var i = 0; i < partes.length; i++) {
+
+      if(partes[i].contains('_ids_')){
+        final ids = '${_proc.enProceso.src['id']}-${_proc.receiverCurrent.idReceiver}-${_proc.enProceso.remiter.id}-$_idRegDb';
+        partes[i] = partes[i].replaceAll('_ids_', ids);
+      }
+      if(partes[i].contains('_nombre_')) {
+        partes[i] = partes[i].replaceAll('_nombre_', _proc.receiverCurrent.nombre);
+      }
+    }
+    return partes;
+  }
+
   ///
   Future<void> _detenerSistema(String msg) async {
 
@@ -735,7 +758,7 @@ class _SendToReceiverState extends State<SendToReceiver> {
   }
 
   ///
-  Future<void> _simulaProceso(String proceso) async {
+  Future<void> _simulaProceso(String proceso, {String curcTo = ''}) async {
 
     if(!mounted){ return; }
     await BrowserTask.wait(timeTestByStep);
@@ -749,6 +772,9 @@ class _SendToReceiverState extends State<SendToReceiver> {
       _progressTasks.value = _progressTasks.value + _pixPerTask;
       
       switch (proceso) {
+        case 'bs':
+          await _buscarContacto(curcTo);
+          break;
         case 'bskContac':
           await _entrarAlChat();
           break;

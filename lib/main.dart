@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:scm/src/services/get_paths.dart';
+import 'package:scm/src/vars/globals.dart';
 
 import 'src/pages/login_page.dart';
 import 'src/pages/reload_home.dart';
@@ -12,13 +14,22 @@ import 'src/config/sng_manager.dart';
 
 void main() async {
 
-  sngManager();
   WidgetsFlutterBinding.ensureInitialized();
-  
-  doWhenWindowReady(() {
-    final w = appWindow.size.width * 0.27;
-    appWindow.minSize = Size(w, 750.0);
-    appWindow.maxSize = Size(w, 768.0);
+
+  sngManager();
+  final globals = getSngOf<Globals>();
+  Size wsize = WidgetsBinding.instance.window.physicalSize;
+
+  doWhenWindowReady(() async {
+    
+    if(globals.sizeWin.width == 0) {
+      globals.sizeWin = await GetPaths.screen(set: '${wsize.width} ${wsize.height}');
+    }else{
+      globals.sizeWin = await GetPaths.screen();
+    }
+    var w = globals.sizeWin.width * 0.27;
+    appWindow.minSize = const Size(360, 750.0);
+    appWindow.maxSize = Size(w, globals.sizeWin.height);
     appWindow.alignment = Alignment.topLeft;
     appWindow.maximize();
     appWindow.show();

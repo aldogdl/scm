@@ -7,6 +7,8 @@ import 'providers/browser_provider.dart';
 
 class BrowserTask {
 
+  static const intentos = 3;
+
   static late BrowserProvider _wp;
   static BrowserProvider get wp => _wp;
   static BrowserSng browserSng = getSngOf<BrowserSng>();
@@ -45,7 +47,17 @@ class BrowserTask {
 
         await element.click();
         if(txt.isNotEmpty) {
-          final result = await _writeBskContac(txt, element);
+
+          var result = '${lstErrs['bskContac']![1]}';
+          for (var i = 0; i < intentos; i++) {
+            result = await _writeBskContac(i, txt, element);
+            if(result != 'reintentar') {
+              break;
+            }
+          }
+          if(result == 'reintentar') {
+            result = '${lstErrs['bskContac']![1]}';
+          }
           yield result;
           return;
         }else{
@@ -59,92 +71,40 @@ class BrowserTask {
   }
 
   /// [2] Escribimos en la caja de busqueda de contactos.
-  static Future<String> _writeBskContac(String txt, pupp.ElementHandle? element) async {
+  static Future<String> _writeBskContac(
+    int intents, String txt, pupp.ElementHandle element
+  ) async {
 
-    String? select;
-    if(element == null) {
-      select = mapConcep['bskContac']!['html'];
-      if(select != null) {
-        element = await _wp.pagewa!.waitForSelector(select);
-      }
-    }
+    var contenido = await element.evaluate<String>('node => node.innerText');
 
-    if(element != null) {
-
-      var contenido = await element.evaluate<String>('node => node.innerText');
-
-      if(contenido != null) {
-        if(contenido.isNotEmpty) {
-          await _wp.pagewa!.keyboard.press(pupp.Key.end);
-          await _wp.pagewa!.keyboard.down(pupp.Key.shift);
-          await _wp.pagewa!.keyboard.press(pupp.Key.home);
-          await _wp.pagewa!.keyboard.up(pupp.Key.shift);
-          await _wait(100);
-          await _wp.pagewa!.keyboard.press(pupp.Key.delete);
-          await _wait(100);
-        }
-      }
-      
-      await element.type(txt);
-      await _wait(500);
-      contenido = await element.evaluate<String>('node => node.innerText');
-
-      bool hasContent = true;
-      if(contenido != null) {
-        if(contenido.isNotEmpty) {
-          await _wp.pagewa!.keyboard.press(pupp.Key.end);
-          await _wp.pagewa!.keyboard.down(pupp.Key.shift);
-          await _wp.pagewa!.keyboard.press(pupp.Key.home);
-          await _wp.pagewa!.keyboard.up(pupp.Key.shift);
-        }else{
-          hasContent = false;
-        }
-      }else{
-        hasContent = false;
-      }
-      if(!hasContent) {
-        return '${lstErrs['bskContac'][2]}';
-      }
-
-      // Esperamos a que aparezca el boton de limpiar busqueda
-      int timer = 1;
-      bool hasErr = false;
-      select = mapConcep['btnDelCtc']!['html'];
-      pupp.ElementHandle? btn = await _wp.pagewa!.waitForSelector(select!);
-      do {
-        if(espera == timer) { hasErr = true; break; }
-        await _wait(1000);
-        timer++;
-      } while (btn == null);
-
-      if(!hasErr) {
-
-        // Revisamos lo escrito en la caja
-        contenido = await element.evaluate<String>('node => node.innerText');
-        if(contenido != null) {
-          if(contenido == txt) {
-            return 'ok';
-          }
-        }
+    if(contenido != null) {
+      if(contenido.isNotEmpty) {
         await _wp.pagewa!.keyboard.press(pupp.Key.end);
         await _wp.pagewa!.keyboard.down(pupp.Key.shift);
         await _wp.pagewa!.keyboard.press(pupp.Key.home);
         await _wp.pagewa!.keyboard.up(pupp.Key.shift);
-        await _wait(300);
-        await element.type(txt, delay: _tiempoDeEscritura);
-        contenido = await element.evaluate<String>('node => node.innerText');
-        if(contenido != null) {
-          if(contenido == txt) {
-            return 'ok';
-          }
-        }
-        return '${lstErrs['bskContac'][1]}';
-      }else{
-        return '${lstErrs['bskContac'][4]}';
+        await _wait(100);
+        await _wp.pagewa!.keyboard.press(pupp.Key.delete);
+        await _wait(100);
       }
-    }else{
-      return '${lstErrs['bskContac'][1]}';
     }
+    
+    if(intents > 1) {
+      await element.type(txt, delay: _tiempoDeEscritura);
+    }else{
+      await element.type(txt);
+    }
+
+    await _wait(500);
+
+    // Revisamos lo escrito en la caja
+    contenido = await element.evaluate<String>('node => node.innerText');
+    if(contenido != null) {
+      if(contenido == txt) {
+        return 'ok';
+      }
+    }
+    return 'reintentar';
   }
 
   /// [3] Entramos al chat que se nos indica por parametro
@@ -170,7 +130,9 @@ class BrowserTask {
               await chats[i].click();
               await _wait(500);
               String isOkChat = await _isOkChat(nombre);
-              hasRes = true;
+              if(isOkChat == 'ok') {
+                hasRes = true;
+              }
               yield isOkChat;
             } catch (e) {
               yield '${lstErrs['chatDeCtc']![0]}';
@@ -180,6 +142,7 @@ class BrowserTask {
         }
       }
     }
+
     if(!hasRes) {
       String msgE = '${lstErrs['chatDeCtc']![2]}';
       msgE = msgE.replaceAll('_nombre_', nombre);
@@ -208,11 +171,11 @@ class BrowserTask {
   /// es encontrada escibimos el mesajes pasado por parametro.
   static Stream<String> escribirMsg(List<String> msg) async* {
 
-    // Primero revisamos la existencia de la caja de texto.
-    String? select = mapConcep['writeMsg']!['html'];
     bool hasErr = true;
     String msgR = '';
 
+    // Primero revisamos la existencia de la caja de texto.
+    String? select = mapConcep['writeMsg']!['html'];
     if(select != null) {
 
       pupp.ElementHandle? element = await _wp.pagewa!.waitForSelector(select);
@@ -221,29 +184,21 @@ class BrowserTask {
       } catch (_) {}
 
       if (element != null) {
-
-        const int veces = 3;
-        int intentos = 1;
-        for (var i = 0; i < veces; i++) {
-
-          String result = await _writeMensaje(element, msg);
-          if(result == 'ok'){
+        await element.click();
+        await _wait(500);
+        msgR = '${lstErrs['writeMsg']![1]}';
+        for (var i = 0; i < intentos; i++) {
+          msgR = await _writeMensaje(i, element, msg);
+          if(msgR == 'ok'){
             hasErr = false;
-            msgR = result;
             break;
           }
-
-          if(intentos >= veces) {
-            hasErr = false;
-            msgR = result;
-            break;
-          }
-          intentos++;
         }
       }else{
         msgR = '${lstErrs['writeMsg']![0]}';
       }
     }
+
     if(hasErr) {
       msgR = '${lstErrs['writeMsg']![1]}';
     }
@@ -251,10 +206,8 @@ class BrowserTask {
   }
 
   /// [6]
-  static Future<String> _writeMensaje(pupp.ElementHandle element, List<String> msg) async {
+  static Future<String> _writeMensaje(int intents, pupp.ElementHandle element, List<String> msg) async {
 
-    await element.click();
-    await _wait(500);
     var contenido = await element.evaluate<String>('node => node.innerText');
 
     if(contenido != null) {
@@ -277,7 +230,11 @@ class BrowserTask {
         await _wp.pagewa!.keyboard.up(pupp.Key.control);
         await _wait(100);
       }else{
-        await element.type(msg[i], delay: const Duration(milliseconds:8));
+        if(intents > 1) {
+          await element.type(msg[i], delay: _tiempoDeEscritura);
+        }else{
+          await element.type(msg[i]);
+        }
       }
     }
 
@@ -321,6 +278,53 @@ class BrowserTask {
       }
     }
     return '${lstErrs['btnSend']![1]}';
+  }
+
+  ///
+  static Future<String> ultimaRevicionAntesDeEnviar() async {
+
+    String? select = mapConcep['writeMsg']!['html'];
+    if(select != null) {
+
+      pupp.ElementHandle? element = await _wp.pagewa!.waitForSelector(select);
+      try {
+        element = await _wp.pagewa!.$OrNull(select);
+      } catch (_) {}
+
+      if (element == null) { return '${lstErrs['writeMsg']![0]}'; }
+        
+      await element.click();
+      await _wait(500);
+      var contenido = await element.evaluate<String>('node => node.innerText');
+
+      if(contenido != null) {
+        if(contenido.isNotEmpty) {
+          await _wp.pagewa!.keyboard.down(pupp.Key.control);
+          await _wp.pagewa!.keyboard.press(pupp.Key.keyA);
+          await _wp.pagewa!.keyboard.up(pupp.Key.control);
+          await _wp.pagewa!.keyboard.up(pupp.Key.keyA);
+          await _wait(100);
+        }
+      }
+
+      bool isOkTxtRes = true;
+      contenido = await element.evaluate<String>('node => node.innerText');
+      if(contenido != null) {
+        
+        contenido = contenido.toLowerCase();
+
+        for (var i = 0; i < comparaCon.length; i++) {
+          if(!contenido.contains(comparaCon[i])) {
+            isOkTxtRes = false;
+            break;
+          }
+        }
+      }
+
+      if(isOkTxtRes) {return 'ok'; }
+    }
+
+    return '${lstErrs['writeMsg']![1]}';
   }
 
 
@@ -378,6 +382,9 @@ class BrowserTask {
   
   ///
   static const Map<String, dynamic> lstErrs = {
+    'buildReg' : [
+      'ERROR,<drash> No se creo el registro inicial en la BD local',
+    ],
     'bskContac' : [
       'ERROR,<stop> Sin Conexión a Internet',
       'ERROR,<retry> No se alcanzó la caja de Búsqueda de Contactos.',
@@ -433,36 +440,50 @@ class BrowserTask {
   };
 
   ///
-  static List<Map<String, dynamic>> getTasks() {
+  static List<Map<String, dynamic>> getTasks({bool isTest = false}) {
 
-     return [
-      {
-        'task': 'Revisar Caja de Busqueda',
+    List<Map<String, dynamic>> task = [];
+    
+    if(!isTest) {
+      task.add({
+        'task': 'Crear Registro inicial',
         'stt' : 0,
-        'acc' : 'bskContac',
-        'sug' : 'No se encontró la caja de búsqueda de contactos principal '
-        'Asegurate de que este visible para el SCM.'
-      },
-      {
-        'task': 'Entrar al Chat de Contactos',
-        'stt' : 0,
-        'acc' : 'entraChat',
-        'sug' : '¿Estás segur@ de que estás usando el dispositivo correcto?'
-      },
-      {
-        'task': 'Escribe y Revisar la caja de Mensajes',
-        'stt' : 0,
-        'acc' : 'checkBoxWriteMsg',
-        'sug' : 'Por favor, es necesario que la caja de mensajes dentro de '
-        'cualquier chat esté visible para el SCM, asegurate de realizar esta acción.'
-      },
-      {
-        'task': 'Enviar mensaje de Bienvenida',
-        'stt' : 0,
-        'acc' : 'sendMsg',
-        'sug' : 'Se encontró un error en el sistema, por favor llama al administrador'
-      }
-    ];
+        'acc' : 'buildReg',
+        'sug' : 'Creamos el registro en la base de datos local para obtener un ID unico '
+        'el cual será enviado en el link al receiver para identificar los status de los msgs'
+      });
+    }
+    task.addAll(
+      [
+        {
+          'task': 'Revisar Caja de Busqueda',
+          'stt' : 0,
+          'acc' : 'bskContac',
+          'sug' : 'No se encontró la caja de búsqueda de contactos principal '
+          'Asegurate de que este visible para el SCM.'
+        },
+        {
+          'task': 'Entrar al Chat de Contactos',
+          'stt' : 0,
+          'acc' : 'entraChat',
+          'sug' : '¿Estás segur@ de que estás usando el dispositivo correcto?'
+        },
+        {
+          'task': 'Escribe y Revisar la caja de Mensajes',
+          'stt' : 0,
+          'acc' : 'checkBoxWriteMsg',
+          'sug' : 'Por favor, es necesario que la caja de mensajes dentro de '
+          'cualquier chat esté visible para el SCM, asegurate de realizar esta acción.'
+        },
+        {
+          'task': 'Enviar mensaje de Bienvenida',
+          'stt' : 0,
+          'acc' : 'sendMsg',
+          'sug' : 'Se encontró un error en el sistema, por favor llama al administrador'
+        }
+      ]
+    );
+    return task;
   }
 
 }

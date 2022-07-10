@@ -33,13 +33,13 @@ class _CheckStatusState extends State<CheckStatus> {
     if(!_isInit) {
       _isInit = true;
       BrowserTask.init(context.read<BrowserProvider>());
-      checkings = BrowserTask.getTasks();
+      checkings = BrowserTask.getTasks(isTest: true);
     }
 
     return Column(
       children: [
         Icon(Icons.done_all_outlined, size: 70, color: Colors.blue.withOpacity(0.3)),
-        const Texto(txt: 'Checa el STATUS', isBold: true, sz: 15, isCenter: true),
+        const Texto(txt: 'Checar el SISTEMA', isBold: true, sz: 15, isCenter: true),
         const Divider(height: 5, color: Colors.green),
         const Texto(
           txt: 'Permite que el sistema revice que todo esté '

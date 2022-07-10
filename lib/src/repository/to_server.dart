@@ -11,16 +11,22 @@ class ToServer {
   }
 
   ///
-  static Future<void> regEnvioInBD(int idCamp, int idReceiver, {
+  static Future<void> buildRegInBD(int idCamp, int idReceiver, {
     String stt = 'i', bool isLocal = true
   }) async {
 
     String path = await GetPaths.getUri('set_reg_envio', isLocal: isLocal);
     await MyHttp.post(
-      path, {'camp': idCamp, 'receiver': idReceiver,
-        'stt': stt, 'isLast': false
-      }
+      path, {'camp': idCamp, 'receiver': idReceiver, 'stt': stt, 'isLast': false}
     );
     result = MyHttp.result;
   }
+
+  ///
+  static Future<void> updateRegInBD(int idReg, String stt) async {
+
+    String path = await GetPaths.getUri('set_regs_byids');
+    await MyHttp.get('$path$idReg/$stt');
+  }
+
 }

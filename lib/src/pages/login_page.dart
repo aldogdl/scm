@@ -272,60 +272,13 @@ class _LoginPageState extends State<LoginPage> {
                 _curc.text = users.values.first['curc'];
                 _defaultUser = users.values.first['nombre'];
               }
-
-              return DecorationField.dropBy(
-                items: items,
-                fco: _fcurc,
-                help: 'Selecciona quien éres',
-                iconoPre: Icons.account_circle_rounded,
-                onChange: (val) {
-                  if (val != null) {
-                    if (val.contains('Otro')) {
-                      _curc.text = '';
-                      setState(() {
-                        _otroUser = true;
-                      });
-                    } else {
-
-                      final us = _users.value.values.where(
-                        (element) => element['nombre'] == val
-                      ).toList();
-                      if (us.isNotEmpty) {
-                        _curc.text = us.first['curc'];
-                      }
-                      if (_otroUser) {
-                        setState(() {
-                          _otroUser = false;
-                        });
-                      }
-                    }
-                  }
-                },
-                orden: 1,
-                defaultValue: _defaultUser,
-              );
+              
+              return (users.isNotEmpty) ?_dropUsers() : _txtUser();
             }
           ),
           const SizedBox(height: 20),
           if (_otroUser) ...[
-            DecorationField.fieldBy(
-              ctr: _curc,
-              fco: _fcurc,
-              help: 'Ingresa tu CURC',
-              iconoPre: Icons.account_circle_rounded,
-              orden: 2,
-              isPass: false,
-              showPass: true,
-              onPressed: (val) {},
-              validate: (String? val) {
-                if (val != null) {
-                  if (val.length >= 3) {
-                    return null;
-                  }
-                }
-                return 'Este campo es Requerido';
-              }
-            ),
+            _txtUser(),
             const SizedBox(height: 20),
           ],
           DecorationField.fieldBy(
@@ -351,6 +304,65 @@ class _LoginPageState extends State<LoginPage> {
           const SizedBox(height: 20),
         ],
       ),
+    );
+  }
+
+  ///
+  Widget _dropUsers() {
+
+    return DecorationField.dropBy(
+      items: items,
+      fco: _fcurc,
+      help: 'Selecciona quien éres',
+      iconoPre: Icons.account_circle_rounded,
+      onChange: (val) {
+        if (val != null) {
+          if (val.contains('Otro')) {
+            _curc.text = '';
+            setState(() {
+              _otroUser = true;
+            });
+          } else {
+
+            final us = _users.value.values.where(
+              (element) => element['nombre'] == val
+            ).toList();
+            if (us.isNotEmpty) {
+              _curc.text = us.first['curc'];
+            }
+            if (_otroUser) {
+              setState(() {
+                _otroUser = false;
+              });
+            }
+          }
+        }
+      },
+      orden: 1,
+      defaultValue: _defaultUser,
+    );
+  }
+
+  ///
+  Widget _txtUser() {
+
+    return DecorationField.fieldBy(
+      ctr: _curc,
+      fco: _fcurc,
+      help: 'Ingresa tu CURC',
+      iconoPre: Icons.account_circle_rounded,
+      orden: 2,
+      isPass: false,
+      showPass: true,
+      onPressed: (val) {},
+      validate: (String? val) {
+        if (val != null) {
+          if (val.length >= 3) {
+            return null;
+          }
+        }
+        return 'Este campo es Requerido';
+      }
     );
   }
 
@@ -523,6 +535,7 @@ class _LoginPageState extends State<LoginPage> {
     bool addUser = true;
     if(regs.existsSync()) {
       final content = regs.readAsStringSync();
+      
       if(content.isNotEmpty) {
         users = Map<String, dynamic>.from(json.decode(content));
         if(users.isNotEmpty) {
@@ -533,7 +546,7 @@ class _LoginPageState extends State<LoginPage> {
         }
       }
     }
-
+    
     if(addUser) {
       users.putIfAbsent(data['password'], () => _globals.user.userToJson());
     }

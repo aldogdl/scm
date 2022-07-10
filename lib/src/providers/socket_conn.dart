@@ -362,8 +362,8 @@ class SocketConn extends ChangeNotifier {
 
     await MyHttp.get('http://${globals.ipHarbi}:${globals.portHarbi}/api_harbi/get_ipdb');
 
-    if(MyHttp.result.containsKey('base_r')) {
-      globals.ipDbs = Map<String, dynamic>.from(MyHttp.result);
+    if(MyHttp.result['body'].containsKey('base_r')) {
+      globals.ipDbs = Map<String, dynamic>.from(MyHttp.result['body']);
       MyHttp.clean();
       return 'Conexión via API exitosa';
     }else{

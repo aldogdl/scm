@@ -1,10 +1,11 @@
 import 'package:bitsdojo_window/bitsdojo_window.dart' show WindowButtonColors;
-import 'package:flutter/material.dart' show FocusNode, Color;
+import 'package:flutter/material.dart' show FocusNode, Color, Size;
 
 import '../entity/contacto_entity.dart';
 
 class Globals {
 
+  Size sizeWin = const Size(0, 0);
   bool isLocalConn = false;
   String wifiName = '';
   String myIp = '';

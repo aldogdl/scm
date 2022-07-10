@@ -47,36 +47,9 @@ class _ConfigPageState extends State<ConfigPage> {
           const TituloSeccion(titulo: 'Configuración'),
           const SizedBox(height: 8),
           Row(
-            children: [
-              const SizedBox(width: 10),
-              if(context.read<SocketConn>().isLoged)
-                SizedBox(
-                  height: 25, width: 100,
-                  child: ElevatedButton(
-                    style: ButtonStyle(
-                      backgroundColor: MaterialStateProperty.all(
-                        Colors.green
-                      ),
-                      padding: MaterialStateProperty.all(
-                        const EdgeInsets.symmetric(
-                          vertical: 0, horizontal: 10
-                        )
-                      )
-                    ),
-                    onPressed: () => setState(() {
-                      _seccion = (_seccion == 'info') ? 'more' : 'info';
-                    }),
-                    child: Texto(
-                      txt: (_seccion == 'more')
-                      ? 'VER MAS...'
-                      : 'VER DATA',
-                      txtC: Colors.black,
-                      sz: 13,
-                    )
-                  ),
-                ),
-              const Spacer(),
-              const CheckBoxConnection(),
+            children: const [
+              Spacer(),
+              CheckBoxConnection(),
             ],
           ),
           _tileDataConn(

@@ -271,9 +271,7 @@ class GetContentFile {
   }
 
   /// [r] Obtenemos el contenido del archivo indicado por parametro
-  static Future<Map<String, dynamic>> getMsgToMap(
-    String pathFile
-  ) async {
+  static Future<Map<String, dynamic>> getMsgToMap(String pathFile) async {
 
     if(pathFile.isEmpty){ return {}; }
     File content = File(pathFile);
