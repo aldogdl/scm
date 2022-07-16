@@ -101,7 +101,7 @@ class BrowserConn {
     Response site = await _wp.pagewa!.goto(
       browserSng.uriWhatsapp,
       wait: Until.networkIdle,
-      timeout: const Duration(milliseconds: 60000)
+      timeout: const Duration(milliseconds: 300000)
     );
     if(site.data.status == 200) {
       _wp.titleCurrent = await _wp.pagewa!.title ?? ''; 
