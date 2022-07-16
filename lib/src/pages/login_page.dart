@@ -1,22 +1,19 @@
-import 'dart:convert';
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
 import 'package:glass_kit/glass_kit.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:provider/provider.dart';
-import 'package:routemaster/routemaster.dart';
 
 import 'layout_page.dart';
+import '../services/get_paths.dart';
 import '../config/sng_manager.dart';
-import '../entity/request_event.dart';
 import '../providers/socket_conn.dart';
-import '../providers/process_provider.dart';
 import '../services/puppetter/views/check_status.dart';
 import '../services/puppetter/views/open_browser.dart';
 import '../services/puppetter/views/open_whastapp.dart';
-import '../services/get_paths.dart';
 import '../vars/globals.dart';
 import '../vars/scroll_config.dart';
 import '../widgets/decoration_field.dart';
@@ -47,14 +44,12 @@ class _LoginPageState extends State<LoginPage> {
   bool _showPass = true;
   bool _otroUser = false;
   bool _isInit = false;
-  int _intentosConn = 1;
   bool _absorbing = false;
   bool _hasLan = true;
 
   String _defaultUser = 'Cargando';
   List<String> items = ['Cargando'];
-  final ValueNotifier<Map<String, dynamic>> _users =
-      ValueNotifier<Map<String, dynamic>>({});
+  final  _users = ValueNotifier<Map<String, dynamic>>({});
 
   @override
   void dispose() {
@@ -69,7 +64,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   void initState() {
-    WidgetsBinding.instance!.addPostFrameCallback(_initWidget);
+    WidgetsBinding.instance.addPostFrameCallback(_initWidget);
     super.initState();
   }
   
@@ -79,7 +74,7 @@ class _LoginPageState extends State<LoginPage> {
     if (!_isInit) {
       _isInit = true;
       _sock = context.read<SocketConn>();
-      _sock.setMsgWithoutNotified('Buscando Conexiones');
+      _sock.setMsgWithoutNotified('Autentícate por favor.');
     }
 
     return LayoutPage(
@@ -269,66 +264,21 @@ class _LoginPageState extends State<LoginPage> {
           ValueListenableBuilder<Map<String, dynamic>>(
             valueListenable: _users,
             builder: (_, users, __) {
+
               if (users.isNotEmpty && items.length == 1) {
                 items.clear();
-                users.forEach((key, val) => items.add(val['nombre']));
+                users.forEach((key, value) { items.add(value['nombre']); });
                 items.add('Usar Otro Usuario');
                 _curc.text = users.values.first['curc'];
                 _defaultUser = users.values.first['nombre'];
               }
-
-              return DecorationField.dropBy(
-                items: items,
-                fco: _fcurc,
-                help: 'Selecciona quien éres',
-                iconoPre: Icons.account_circle_rounded,
-                onChange: (val) {
-                  if (val != null) {
-                    if (val.contains('Otro')) {
-                      _curc.text = '';
-                      setState(() {
-                        _otroUser = true;
-                      });
-                    } else {
-                      final us = _users.value.values.where((element) {
-                        return element['nombre'] == val;
-                      }).toList();
-                      if (us.isNotEmpty) {
-                        _curc.text = us.first['curc'];
-                      }
-                      if (_otroUser) {
-                        setState(() {
-                          _otroUser = false;
-                        });
-                      }
-                    }
-                  }
-                },
-                orden: 1,
-                defaultValue: _defaultUser,
-              );
+              
+              return (users.isNotEmpty) ?_dropUsers() : _txtUser();
             }
           ),
           const SizedBox(height: 20),
           if (_otroUser) ...[
-            DecorationField.fieldBy(
-              ctr: _curc,
-              fco: _fcurc,
-              help: 'Ingresa tu CURC',
-              iconoPre: Icons.account_circle_rounded,
-              orden: 2,
-              isPass: false,
-              showPass: true,
-              onPressed: (val) {},
-              validate: (String? val) {
-                if (val != null) {
-                  if (val.length >= 3) {
-                    return null;
-                  }
-                }
-                return 'Este campo es Requerido';
-              }
-            ),
+            _txtUser(),
             const SizedBox(height: 20),
           ],
           DecorationField.fieldBy(
@@ -354,6 +304,65 @@ class _LoginPageState extends State<LoginPage> {
           const SizedBox(height: 20),
         ],
       ),
+    );
+  }
+
+  ///
+  Widget _dropUsers() {
+
+    return DecorationField.dropBy(
+      items: items,
+      fco: _fcurc,
+      help: 'Selecciona quien éres',
+      iconoPre: Icons.account_circle_rounded,
+      onChange: (val) {
+        if (val != null) {
+          if (val.contains('Otro')) {
+            _curc.text = '';
+            setState(() {
+              _otroUser = true;
+            });
+          } else {
+
+            final us = _users.value.values.where(
+              (element) => element['nombre'] == val
+            ).toList();
+            if (us.isNotEmpty) {
+              _curc.text = us.first['curc'];
+            }
+            if (_otroUser) {
+              setState(() {
+                _otroUser = false;
+              });
+            }
+          }
+        }
+      },
+      orden: 1,
+      defaultValue: _defaultUser,
+    );
+  }
+
+  ///
+  Widget _txtUser() {
+
+    return DecorationField.fieldBy(
+      ctr: _curc,
+      fco: _fcurc,
+      help: 'Ingresa tu CURC',
+      iconoPre: Icons.account_circle_rounded,
+      orden: 2,
+      isPass: false,
+      showPass: true,
+      onPressed: (val) {},
+      validate: (String? val) {
+        if (val != null) {
+          if (val.length >= 3) {
+            return null;
+          }
+        }
+        return 'Este campo es Requerido';
+      }
     );
   }
 
@@ -398,8 +407,7 @@ class _LoginPageState extends State<LoginPage> {
         if (_globals.ipHarbi.isEmpty)
           IconButton(
             onPressed: () async {
-              bool hasIp = await _sock.getIpConnectionToHarbi();
-              if (hasIp) {
+              if (_globals.ipHarbi.isEmpty) {
                 _sock.msgErr = 'Identifícate por favor';
               }
             },
@@ -436,15 +444,10 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    String uri = await GetPaths.getFileByPath('connpass');
-    File filepass = File(uri);
-    if (filepass.existsSync()) {
-      _users.value = Map<String, dynamic>.from(json.decode(filepass.readAsStringSync()));
-    }
     _absorbing = false;
     _pass.text = '';
-
     await _checkRedLan();
+    _users.value = await _getUserFromFile();
   }
 
   ///
@@ -456,6 +459,10 @@ class _LoginPageState extends State<LoginPage> {
     }else{
       _hasLan = true;
     }
+    _sock.msgErr = await _sock.getIpToHarbiFromServer();
+    if(!_sock.msgErr.startsWith('ERROR')) {
+      _sock.msgErr = 'AUTENTÍCATE POR FAVOR';
+    }
     Future.delayed(const Duration(microseconds: 300), (){
       setState(() {});
     });
@@ -465,118 +472,98 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _autenticar() async {
 
     if (_frmKey.currentState!.validate()) {
-      
-      setState(() {
-        _absorbing = true;
-      });
+      setState(() { _absorbing = true; });
       await Future.delayed(const Duration(milliseconds: 300));
 
       _sock.isLoged = false;
-      _sock.msgErr = 'Recuperando datos de Conexión';
-      bool hasIp = await _sock.getIpConnectionToHarbi(
-        pass: _pass.text.toLowerCase().trim(),
-        ipNew: (_intentosConn > 1) ? _globals.myIp : '0'
-      );
-      if (hasIp) {
-        _sock.msgErr = 'Identifícate por favor';
+      _sock.msgErr = 'Revisando conexión con Harbi';
+      _sock.msgErr = await _sock.probandoConnWithHarbi();
+      if(_sock.msgErr.startsWith('ERROR')) {
+        setState(() { _absorbing = false; });
+        return;
       }
-      if(_sock.msgErr.contains('ERROR')) {
+
+      _sock.msgErr = 'Validando Credenciales';
+      final data = {
+        'username': _curc.text.toLowerCase().trim(),
+        'password': _pass.text.toLowerCase().trim()
+      };
+      await _hidratarUserFromFile(data);
+
+      bool isValid = await _sock.hacerLoginFromServer(data);
+      if(!isValid) {
+        _sock.msgErr = '[X] Credenciales Invalidas';
         setState(() {
           _absorbing = false;
         });
         return;
       }
+      
+      await _hidratarFileFromUser(data);
+      _sock.makeFirstConnection().then((_) async {
+        if(_sock.idConn != 0) {
+          await _sock.makeRegistroUserToHarbi();
+          _sock.isLoged = true;
+        }
+      });
+    }
+  }
 
-      bool isConnected = await _sock.ping();
+  ///
+  Future<void> _hidratarUserFromFile(Map<String, dynamic> data) async {
 
-      if (!isConnected) {
-        if (_globals.ipHarbi.isEmpty) {
-          _sock.msgErr = 'Desconocida la IP de HARBI';
-        } else {
-          if(_intentosConn == 1) {
-            _intentosConn = 2;
-            _sock.msgErr = 'Probando con mi IP';
-            _autenticar();
-          }else{
-            _sock.msgErr = 'No hay conexión con HARBI';
-            setState(() { _absorbing = false; });
+    final users = await _getUserFromFile();
+    if(users.isNotEmpty) {
+      users.forEach((key, value) {
+        if(value['curc'] == data['username']) {
+          var us = Map<String, dynamic>.from(value);
+          if(!us.containsKey('password')) {
+            us['password'] = data['password'];
+          }
+          _globals.user.fromFile(us);
+        }
+      });
+    }
+  }
+
+  ///
+  Future<void> _hidratarFileFromUser(Map<String, dynamic> data) async {
+
+    String uri = await GetPaths.getFileByPath('connpass');
+    final regs = File(uri);
+    Map<String, dynamic> users = {};
+    bool addUser = true;
+    if(regs.existsSync()) {
+      final content = regs.readAsStringSync();
+      
+      if(content.isNotEmpty) {
+        users = Map<String, dynamic>.from(json.decode(content));
+        if(users.isNotEmpty) {
+          if(users.containsKey(data['password'])) {
+            users[data['password']] = _globals.user.userToJson();
+            addUser = false;
           }
         }
-      } else {
-        await validarCredenciales();
       }
     }
+    
+    if(addUser) {
+      users.putIfAbsent(data['password'], () => _globals.user.userToJson());
+    }
+    regs.writeAsStringSync(json.encode(users));
   }
 
   ///
-  Future<void> validarCredenciales() async {
+  Future<Map<String, dynamic>> _getUserFromFile() async {
 
-    _sock.msgErr = 'Validando Credenciales';
-
-    final data = {
-      'username': _curc.text.toLowerCase().trim(),
-      'password': _pass.text.toLowerCase().trim()
-    };
-    if (_otroUser) {
-      data['only_check'] = '1';
-    }
-    bool abort = await _sock.awaitResponseSocket(
-      event: RequestEvent(
-        event: 'connection', fnc: 'exite_user_local', data: data
-      ),
-      msgInit: 'Haciendo login en local',
-      msgExito: 'Login Autorizado'
-    );
-
-    if (!_sock.msgErr.contains('Error')) {
-      if (abort) {
-        await _hacerLoginFromServer(data);
-      } else {
-        
-        _globals.password = data['password']!;
-        _globals.curc = data['username']!;
-        setState(() {
-          _absorbing = false;
-        });
-        _sock.isLoged = true;
-        Future.delayed(const Duration(milliseconds: 500), () {
-          Routemaster.of(context).pop();
-          context.read<ProcessProvider>().reloadMsgAcction =
-          'Bienvenid@ ${context.read<SocketConn>().username}';
-        });
-      }
-    } else {
-      if (_sock.msgErr.contains('Inexistente')) {
-        await _hacerLoginFromServer(data);
+    String uri = await GetPaths.getFileByPath('connpass');
+    final regs = File(uri);
+    if (regs.existsSync()) {
+      final content = regs.readAsStringSync();
+      if(content.isNotEmpty) {
+        return Map<String, dynamic>.from(json.decode(content));
       }
     }
-  }
-
-  ///
-  Future<void> _hacerLoginFromServer(Map<String, dynamic> data) async {
-
-    _globals.tkServ = '';
-    bool abort = await _sock.awaitResponseSocket(
-      event: RequestEvent(
-        event: 'connection', fnc: 'make_login_server', data: data
-      ),
-      msgInit: 'Buscando Credenciales',
-      msgExito: 'Login Autorizado');
-
-    if (abort) {
-      _sock.msgErr = 'Credenciales Invalidas';
-    } else {
-      _sock.isLoged = true;
-      _globals.password = data['password']!;
-      _globals.curc = data['username']!;
-      setState(() {
-        _absorbing = false;
-      });
-      Future.delayed(const Duration(milliseconds: 500), () {
-        Routemaster.of(context).pop();
-        context.read<ProcessProvider>().reloadMsgAcction =
-          'Bienvenid@ ${_sock.username}';
-      });
-    }
+    return {};
   }
 }

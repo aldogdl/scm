@@ -1,23 +1,35 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
-import 'package:routemaster/routemaster.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:scm/src/services/get_paths.dart';
+import 'package:scm/src/vars/globals.dart';
 
+import 'src/pages/login_page.dart';
+import 'src/pages/reload_home.dart';
 import 'src/services/puppetter/providers/browser_provider.dart';
 import 'src/providers/process_provider.dart';
 import 'src/providers/socket_conn.dart';
 import 'src/config/sng_manager.dart';
-import 'src/vars/mis_rutas.dart';
 
 void main() async {
 
-  sngManager();
   WidgetsFlutterBinding.ensureInitialized();
 
-  doWhenWindowReady(() {
-    appWindow.minSize = const Size(360.0, 750.0);
-    appWindow.maxSize = const Size(360.0, 768.0);
+  sngManager();
+  final globals = getSngOf<Globals>();
+  Size wsize = WidgetsBinding.instance.window.physicalSize;
+
+  doWhenWindowReady(() async {
+    
+    if(globals.sizeWin.width == 0) {
+      globals.sizeWin = await GetPaths.screen(set: '${wsize.width} ${wsize.height}');
+    }else{
+      globals.sizeWin = await GetPaths.screen();
+    }
+    var w = globals.sizeWin.width * 0.27;
+    appWindow.minSize = const Size(360, 750.0);
+    appWindow.maxSize = Size(w, globals.sizeWin.height);
     appWindow.alignment = Alignment.topLeft;
     appWindow.maximize();
     appWindow.show();
@@ -51,7 +63,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     
-    return MaterialApp.router(
+    final routerKey = GlobalKey<NavigatorState>();
+
+    return MaterialApp(
       title: 'SCM',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -67,17 +81,28 @@ class MyApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate
       ],
-      supportedLocales: const [
-        Locale('es', 'ES'),
-      ],
-      routeInformationParser: const RoutemasterParser(),
-      routerDelegate: RoutemasterDelegate(
-      routesBuilder: (context) {
+      supportedLocales: const [ Locale('es', 'ES') ],
+      navigatorKey: routerKey,
+      home: const BuildContextGral(),
+    );
+  }
+}
 
-          final isLoggedIn = Provider.of<SocketConn>(context).isLoged;
-          return isLoggedIn ? MyRutas.withLogin() : MyRutas.withOutLogin;
-        }
-      ),
+class BuildContextGral extends StatelessWidget {
+
+  const BuildContextGral({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+
+    return Overlay(
+      initialEntries: [
+        OverlayEntry(
+          builder: (ctxTwo) => (!ctxTwo.watch<SocketConn>().isLoged)
+          ? const LoginPage()
+          : const ReloadHome()
+        )
+      ],
     );
   }
 }

@@ -1,25 +1,19 @@
 import 'package:bitsdojo_window/bitsdojo_window.dart' show WindowButtonColors;
-import 'package:flutter/material.dart' show FocusNode, Color;
+import 'package:flutter/material.dart' show FocusNode, Color, Size;
+
+import '../entity/contacto_entity.dart';
 
 class Globals {
 
+  Size sizeWin = const Size(0, 0);
   bool isLocalConn = false;
   String wifiName = '';
   String myIp = '';
   String ipHarbi = '';
   String portHarbi = '';
   Map<String, dynamic> ipDbs = {};
-  String tkServ = '';
-  int idUser = 0;
-  String curc = '';
-  String password = '';
-  List<String> roles = [];
+  ContactoEntity user = ContactoEntity();
   FocusNode focusMain = FocusNode();
-  
-  List<String> posic = ['DELANTERA', 'TRASERA', 'LATERAL', 'MOTOR', 'SUSPENSION'];
-  List<String> lugar = ['IZQUIERDO', 'DERECHO', 'CENTRAL', 'SUPERIOR', 'INFERIOR'];
-  List<String> origenes = ['SEMINUEVA Original', 'GENÉRICA nueva', 'CUALQUIER Orígen'];
-
   
   final double tamToolBar = 50;
   final double tamMiddle  = 300;

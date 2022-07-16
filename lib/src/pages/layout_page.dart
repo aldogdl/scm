@@ -3,13 +3,13 @@ import 'package:glass_kit/glass_kit.dart';
 import 'package:provider/provider.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 
-import 'home_widgets/msg_current.dart';
+import 'views/msg_current.dart';
+import 'views/config_page.dart';
+import 'views/await_page.dart';
+import 'views/sended_page.dart';
+import 'views/papelera_page.dart';
+import 'views/target_page.dart';
 import '../config/sng_manager.dart';
-import '../pages/views/config_page.dart';
-import '../pages/views/await_page.dart';
-import '../pages/views/sended_page.dart';
-import '../pages/views/papelera_page.dart';
-import '../pages/views/target_page.dart';
 import '../providers/socket_conn.dart';
 import '../vars/globals.dart';
 import '../widgets/status_barr.dart';
@@ -46,7 +46,10 @@ class LayoutPage extends StatelessWidget {
                 ]
               ),
             ),
-            const StatusBarr()
+            StatusBarr(
+              bgOff: _globals.sttBarrColorOff,
+              bgOn: _globals.sttBarrColorOn,
+            )
           ],
         )
       )
@@ -106,7 +109,7 @@ class LeftSide extends StatelessWidget {
       case 'msg':
         child = const MsgCurrent();
         break;
-      case 'target':
+      case 'targets':
         child = const TargetPage();
         break;
       case 'espera':

@@ -79,9 +79,8 @@ class _MyTerminalState extends State<MyTerminal> {
 
     return Scrollbar(
       controller: _scroll,
-      isAlwaysShown: true,
+      thumbVisibility: true,
       radius: const Radius.circular(3),
-      showTrackOnHover: true,
       trackVisibility: true,
       child: ListView.builder(
         padding: EdgeInsets.only(

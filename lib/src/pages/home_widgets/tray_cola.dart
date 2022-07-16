@@ -1,12 +1,13 @@
-import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
+import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:provider/provider.dart';
-import 'package:routemaster/routemaster.dart';
-import 'package:scm/src/widgets/texto.dart';
+import 'package:google_fonts/google_fonts.dart';
 
+import '../../services/get_content_files.dart';
 import '../../providers/process_provider.dart';
 import '../../services/my_utils.dart';
 import '../../vars/scroll_config.dart';
+import '../../widgets/texto.dart';
 import '../../widgets/my_tool_tip.dart';
 import '../../widgets/sin_data.dart';
 
@@ -23,7 +24,15 @@ class _TrayColaState extends State<TrayCola> {
   late final ProcessProvider _proc;
 
   bool _isInit = false;
-  
+  List<Map<String, dynamic>> _lstCamps = [];
+  late Future _getTray;
+
+  @override
+  void initState() {
+    _getTray = _recuperarTray();
+    super.initState();
+  }
+
   @override
   void dispose() {
     _ctrScrollMain.dispose();
@@ -33,101 +42,95 @@ class _TrayColaState extends State<TrayCola> {
   @override
   Widget build(BuildContext context) {
 
-    if(!_isInit) {
-      _isInit = true;
-      _proc = context.read<ProcessProvider>();
-    }
-    
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 10),
-      padding: const EdgeInsets.all(3),
-      constraints: BoxConstraints.expand(
-        width: appWindow.size.width
-      ),
-      decoration: const BoxDecoration(
-        color: Colors.grey,
-      ),
-      child: Selector<ProcessProvider, List<Map<String, dynamic>>>(
-        selector: (_, provi) => provi.campaingsCola,
-        builder: (_, lstC, child) {
-          
-          if(lstC.isEmpty) { 
-            if(_proc.receiversCola.isEmpty) {
-              if(_proc.receiverCurrent.idReceiver == 0) {
-                Future.delayed(const Duration(milliseconds: 100),(){
-                  Routemaster.of(context).pop();
-                  _proc.reloadMsgAcction = '-> LISTO ESPERANDO CAMPAÑAS';
-                });
-              }
-            }
-            return child!;
+    return FutureBuilder(
+      future: _getTray,
+      builder: (_, AsyncSnapshot snap) {
+
+        if(snap.connectionState == ConnectionState.done) {
+          if(_lstCamps.isNotEmpty) {
+            return _buildLstCampaings();
           }
-          return _buildLstCampaings(lstC);
-        },
-        child: const SinData(
+        }
+
+        return const SinData(
           msg: '', main: 'NADA EN LA BANDEJA',
           withTit: false,
-        ),
-      )
+        );
+      }
     );
   }
 
   ///
-  Widget _buildLstCampaings(
-    List<Map<String, dynamic>> lstCamps
-  ) {
+  Widget _buildLstCampaings() {
 
     return ScrollConfiguration(
       behavior: MyCustomScrollBehavior(),
       child: Scrollbar(
+
         controller: _ctrScrollMain,
-        isAlwaysShown: true,
+        thumbVisibility: true,
         radius: const Radius.circular(3),
-        showTrackOnHover: true,
         trackVisibility: true,
         child: Selector<ProcessProvider, bool>(
           selector: (_, provi) => provi.verColaMini,
           builder: (_, tipoLst, __) {
 
-            return ListView.builder(
-              padding: const EdgeInsets.only(right: 15),
-              controller: _ctrScrollMain,
-              itemCount: lstCamps.length,
-              itemBuilder: (_, int index) {
-                return (tipoLst)
-                  ? _tipoTerminal(lstCamps[index])
-                  : _tileCampaing(lstCamps[index]);
-              }
+            return _base(
+              bg: (tipoLst) ? Colors.black : Colors.grey,
+              child: ListView.builder(
+                padding: const EdgeInsets.only(right: 15),
+                controller: _ctrScrollMain,
+                itemCount: _lstCamps.length,
+                itemBuilder: (_, int index) {
+                  return (tipoLst)
+                    ? _tipoTerminal(_lstCamps[index])
+                    : _tileCampaing(_lstCamps[index]);
+                }
+              )
             );
           },
         )
       )
     );
   }
+  
+  ///
+  Widget _base({required Widget child, Color bg = Colors.grey}) {
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 10),
+      padding: const EdgeInsets.all(3),
+      constraints: BoxConstraints.expand(
+        width: appWindow.size.width
+      ),
+      decoration: BoxDecoration(color: bg),
+      child: child
+    );
+  }
 
   ///
   Widget _tipoTerminal(Map<String, dynamic> camp) {
 
-    final f = MyUtils.getFecha(fecha: camp['createdAt']);
-    String empresa = camp['remiter']['empresa'].toUpperCase();
-    if(empresa.length > 14) {
-      empresa = empresa.substring(0, 14);
+    final f = _extractFecha(camp['createdAt']);
+    String empresa = camp['emiter']['empresa'].toUpperCase();
+
+    if(empresa.length > 20) {
+      empresa = empresa.substring(0, 20);
       empresa = '$empresa...';
     }
-    String campaing = camp['campaing']['titulo'];
-    if(campaing.length > 12) {
-      campaing = campaing.substring(0, 12);
-      campaing = '$campaing.';
-    }
-
+    
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: MyToolTip(
-        msg: '${camp['campaing']['titulo']}  ${camp['remiter']['empresa']} ',
-        child: Texto(
-          txt: '> ${f['tiempo']} ${camp['sended'].length}-${camp['toSend'].length}  $campaing  $empresa...',
-          sz: 12, txtC: const Color.fromARGB(255, 31, 40, 44),
-          isBold: (camp['id'] == _proc.enProceso.id) ? true : false,
+        msg: '${camp['campaing']['titulo']}  ${camp['emiter']['empresa'].toUpperCase()} ',
+        child: Text(
+          '> ${f['tiempo']} [${camp['sended'].length}-${camp['toSend'].length}] $empresa',
+          textScaleFactor: 1,
+          style: GoogleFonts.inconsolata(
+            fontSize: 14,
+            color: (camp['id'] == _proc.enProceso.id)
+              ? Colors.amber : Colors.grey,
+          ),
         ),
       )
     );
@@ -146,7 +149,7 @@ class _TrayColaState extends State<TrayCola> {
       ),
       child: Row(
         children: [
-          _avatar(camp['campaing']['priority'], camp['id']),
+          _avatar(camp['id']),
           Expanded(
             child: _dataCamp(camp),
           ),
@@ -156,7 +159,7 @@ class _TrayColaState extends State<TrayCola> {
   }
 
   ///
-  Widget _avatar(int prioridad, int idCamp) {
+  Widget _avatar(int idCamp) {
 
     return Column(
       children: [
@@ -190,7 +193,7 @@ class _TrayColaState extends State<TrayCola> {
                     borderRadius: BorderRadius.circular(8)
                   ),
                   child: Texto(
-                    txt: '$prioridad', txtC: Colors.white, sz: 10,
+                    txt: '$idCamp', txtC: Colors.white, sz: 10,
                   ),
                 )
               )
@@ -204,8 +207,8 @@ class _TrayColaState extends State<TrayCola> {
   ///
   Widget _dataCamp(Map<String, dynamic> camp) {
 
-    final f = MyUtils.getFecha(fecha: camp['createdAt']);
-    String empresa = camp['remiter']['empresa'].toUpperCase();
+    final f = _extractFecha(camp['createdAt']);
+    String empresa = camp['emiter']['empresa'].toUpperCase();
     if(empresa.length > 25) {
       empresa = empresa.substring(0, 25);
       empresa = '$empresa...';
@@ -219,7 +222,8 @@ class _TrayColaState extends State<TrayCola> {
       campaing = campaing.substring(0, cut);
       campaing = '$campaing...';
     }
-
+    final sended = camp['toSend'].length - camp['noSend'].length;
+    
     return Container(
       height: 38,
       padding: const EdgeInsets.only(
@@ -244,7 +248,7 @@ class _TrayColaState extends State<TrayCola> {
                 ),
               ),
               Texto(
-                txt: '${camp['sended'].length}-${camp['toSend'].length}',
+                txt: '$sended-${camp['toSend'].length}',
                 sz: 11, txtC: const Color.fromARGB(255, 31, 40, 44),
                 isBold: (camp['id'] == _proc.enProceso.id) ? true : false,
               )
@@ -273,7 +277,7 @@ class _TrayColaState extends State<TrayCola> {
                 ),
                 const Spacer(),
                 Texto(
-                  txt: 'MID: ${camp['id']}', sz: 11.5,
+                  txt: 'Prio.: ${camp['campaing']['priority']}', sz: 11.5,
                   txtC: const Color.fromARGB(255, 63, 67, 121)
                 ),
               ],
@@ -283,4 +287,29 @@ class _TrayColaState extends State<TrayCola> {
       ),
     );
   }
+
+  ///
+  Map<String, dynamic> _extractFecha(dynamic fecha) {
+
+    var date = DateTime.now();
+    if(fecha.runtimeType == String) {
+      date = DateTime.parse(fecha);
+    }else{
+      date = fecha['createdAt'];
+    }
+    return MyUtils.getFecha(fecha: date);
+  }
+
+  ///
+  Future<void> _recuperarTray() async {
+
+    if(!_isInit) {
+      _isInit = true;
+      _proc = context.read<ProcessProvider>();
+    }
+    if(_lstCamps.length != _proc.enTray) {
+      _lstCamps = await GetContentFile.getAllCampaingsWithDataMini();
+    }
+  }
+
 }

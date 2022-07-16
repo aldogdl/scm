@@ -31,7 +31,7 @@ class _OpenBrowserState extends State<OpenBrowser> {
         const Texto(txt: '¿El navegador CHROME está Abierto?', isBold: true, sz: 15, isCenter: true),
         const Divider(height: 5, color: Colors.green),
         const Texto(
-          txt: 'Asegurate que el navegador este en abierto y '
+          txt: 'Asegurate que el navegador este abierto y '
           'conectado a tu SCM', isCenter: true,
         ),
         const SizedBox(height: 10),

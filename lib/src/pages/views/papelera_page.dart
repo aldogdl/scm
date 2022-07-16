@@ -63,9 +63,8 @@ class _PapeleraPageState extends State<PapeleraPage> {
 
     return Scrollbar(
       controller: _ctrScrollMain,
-      isAlwaysShown: true,
+      thumbVisibility: true,
       radius: const Radius.circular(3),
-      showTrackOnHover: true,
       trackVisibility: true,
       child: ListView.builder(
         padding: const EdgeInsets.only(right: 10),

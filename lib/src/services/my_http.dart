@@ -15,6 +15,28 @@ class MyHttp {
     result = {'abort':false, 'msg': 'ok', 'body':{}};
   }
 
+  static Future<String> makeLogin(
+    String dominio, Map<String, dynamic> credentials
+  ) async {
+
+    const base = 'secure-api-check';
+    http.Response resp = await http.post(
+      Uri.parse('$dominio$base'),
+      body: json.encode(credentials),
+      headers: {
+        'Content-type': 'application/json',
+        'Accept': 'application/json',
+      }
+    );
+    if(resp.statusCode == 200) {
+      final r = Map<String, dynamic>.from(json.decode(resp.body));
+      if(r.containsKey('token')){
+        return r['token'];
+      }
+    }
+    return '';
+  }
+
   ///
   static Future<void> get(String uri) async {
 
@@ -50,6 +72,33 @@ class MyHttp {
 
     req.headers.addAll(headers);
     req.fields['data'] = json.encode(data);
+    late http.Response response;
+    try {
+      response = await http.Response.fromStream(await req.send());
+    } catch (e) {
+      result = {'abort':true, 'msg': e.toString(), 'body':'ERROR, Sin conexión al servidor, intentalo nuevamente.'};
+      return;
+    }
+
+    if(response.statusCode == 200) {
+      clean();
+      result = Map<String, dynamic>.from(json.decode(response.body));
+    }else{
+      _drawErrorInConsole(response);
+    }
+  }
+
+  ///
+  static Future<void> postHarbi(String uri, Map<String, dynamic> data) async {
+
+    Map<String, String> headers = {
+      'Content-type': 'application/json',
+      'Accept': 'application/json',
+    };
+    var req = http.MultipartRequest('POST', Uri.parse(uri));
+
+    req.headers.addAll(headers);
+    req.fields['data'] = '${utf8.encode(json.encode(data))}';
     late http.Response response;
     try {
       response = await http.Response.fromStream(await req.send());

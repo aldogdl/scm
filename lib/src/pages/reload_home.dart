@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:provider/provider.dart';
-import 'package:routemaster/routemaster.dart';
 
+import 'home_page.dart';
 import 'layout_page.dart';
+import 'login_page.dart';
 import '../providers/socket_conn.dart';
 import '../providers/process_provider.dart';
-import '../vars/mis_rutas.dart';
 import '../widgets/texto.dart';
 
 class ReloadHome extends StatelessWidget {
   
-  const ReloadHome({
-    Key? key,
-  }) : super(key: key);
+  const ReloadHome({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -42,10 +40,13 @@ class ReloadHome extends StatelessWidget {
         ),
         const Texto(txt: 'SERVIDOR CENTRAL DE MENSAJERÍA', txtC: Colors.green),
         const Divider(),
-        const Texto(
-          txt: 'Por el momento no hay nada por ser enviado '
-          'estoy a la espera de cualquier solicitud.',
-          isCenter: true,
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: Texto(
+            txt: 'Por el momento no hay nada por ser enviado '
+            'estoy a la espera de cualquier solicitud.',
+            isCenter: true,
+          )
         ),
         const SizedBox(height: 20),
         Icon(
@@ -69,10 +70,6 @@ class ReloadHome extends StatelessWidget {
             );
           }
         ),
-        TextButton(
-          onPressed: () => context.read<ProcessProvider>().reloadMsgAcction = 'priorit',
-          child: const Texto(txt: ' Recargar ')
-        )
       ],
     );
   }
@@ -81,37 +78,26 @@ class ReloadHome extends StatelessWidget {
   Future<void> _deternimarAccion(BuildContext context, String accion) async {
 
     final proc = context.read<ProcessProvider>();
-    if(accion.isEmpty){ return; }
+    
+    if(accion.isEmpty){
+      if(proc.isStopAllCrones) {
+        proc.startAllCrones();
+      }
+      return;
+    }
 
     if(!context.read<SocketConn>().isLoged) {
       _login(context);
     }
-    if(accion.toLowerCase().contains('autenticarte')) {
-      _login(context);
+    if(accion.toLowerCase().contains('iniciando')) {
+      homePage(context);
       return;
     }
-
-    if(accion.startsWith('->')) {
-      // -> indica mostrar solo mensjaes, sin accion
-      return;
-    }
-
-    if(accion.toLowerCase().contains('recargando')) {
-      _reload(context);
-      return;
-    }
-
-    if(accion.toLowerCase().contains('bienvenid')) {
-      
-      Future.delayed(const Duration(milliseconds: 1500), () async {
-        proc.clean();
-        proc.reloadMsgAcction = 'Buscando Capañas Prioritarias';
-      });
-      return;
-    }
-
-    if(accion.toLowerCase().contains('priori')) {
-      await _searchMsgPrioritario(proc);
+    if(accion.toLowerCase().contains('campaña')) {
+      final nav = Navigator.of(context);
+      if(nav.canPop()) {
+        nav.pop();
+      }
       return;
     }
   }
@@ -119,25 +105,20 @@ class ReloadHome extends StatelessWidget {
   ///
   void _login(BuildContext context) {
 
-    Future.delayed(const Duration(milliseconds: 3000), () {
-      context.read<ProcessProvider>().cleanReloadMsgAcction();
-      Routemaster.of(context).push(MyRutas.getRut(Rname.login));
-    });
+    context.read<ProcessProvider>().cleanReloadMsgAcction();
+    MaterialPageRoute(
+      builder: (_) => const LoginPage()
+    );
   }
 
   ///
-  void _reload(BuildContext context) {
-
-    Future.delayed(const Duration(milliseconds: 1000), () {
-      context.read<ProcessProvider>().cleanReloadMsgAcction();
-      Routemaster.of(context).push(MyRutas.getRut(Rname.home));
-    });
-  }
-
-  ///
-  Future<void> _searchMsgPrioritario(ProcessProvider proc) async {
-
-    proc.reloadMsgAcction = '-> OBSERVANDO BANDEJA DE ENTRADA';
-    await proc.buscamosCampaniaPrioritaria();
+  void homePage(BuildContext context) {
+    
+    context.read<ProcessProvider>().setReloadMsgAcction('Iniciando Envio');
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const HomePage()
+      )
+    );
   }
 }

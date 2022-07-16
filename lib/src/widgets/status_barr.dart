@@ -1,39 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:routemaster/routemaster.dart';
-import 'package:scm/src/providers/process_provider.dart';
 
 import 'texto.dart';
 import '../services/my_utils.dart';
-import '../config/sng_manager.dart';
+import '../providers/process_provider.dart';
 import '../providers/socket_conn.dart';
-import '../vars/globals.dart';
 
-final Globals _globals = getSngOf<Globals>();
+class StatusBarr extends StatelessWidget {
 
-class StatusBarr extends StatefulWidget {
-
-  const StatusBarr({Key? key}) : super(key: key);
-
-  @override
-  State<StatusBarr> createState() => _StatusBarrState();
-}
-
-class _StatusBarrState extends State<StatusBarr> {
-
-  bool _isInit = false;
-  late final Map<String, dynamic> fecha;
+  final Color bgOff;
+  final Color bgOn;
+  const StatusBarr({
+    Key? key,
+    required this.bgOff,
+    required this.bgOn,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-
-    if(!_isInit) {
-      _isInit = true;
-      fecha = MyUtils.getFecha(
-        fecha: context.read<ProcessProvider>().initRR
-      );
-    }
-
     
     return Selector<SocketConn, bool>(
       selector: (_, provi) => provi.isLoged,
@@ -44,75 +28,53 @@ class _StatusBarrState extends State<StatusBarr> {
           padding: const EdgeInsets.symmetric(horizontal: 10),
           height: 25,
           decoration: BoxDecoration(
-            color: (isLoged)
-              ? _globals.sttBarrColorOn
-              : _globals.sttBarrColorOff
+            color: (isLoged) ? bgOn : bgOff
           ),
-          child: _body(isLoged),
+          child: _body(context, isLoged),
         );
       },
     );
   }
 
   ///
-  Widget _body(bool isLoged) {
+  Widget _body(BuildContext context, bool isLoged) {
+
+    final proc = context.read<ProcessProvider>();
+    final procW = context.watch<ProcessProvider>();
+    final fecha = MyUtils.getFecha(fecha: proc.initRR);
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         if(isLoged)
-          _btnIcon(tip: 'Cerrar Sesión', icono: Icons.logout, fnc: () {
-            context.read<SocketConn>().cerrarConection();
-            context.read<SocketConn>().isLoged = false;
-            final crones = context.read<ProcessProvider>();
-            crones.stopAllCrones();
-            Routemaster.of(context).pop();
-            crones.reloadMsgAcction = 'Hasta pronto. Gracias por usar el SCM';
+          _btnIcon(tip: 'Cerrar Sesión',
+            icono: Icons.logout,
+            fnc: () {
+              final sock = context.read<SocketConn>();
+              proc.cerrarSesion();
+              sock.cerrarConection();
+              sock.isLoged = false;
           }),
           const Spacer(),
           _btnTxt(
             label: 'Desde: ${fecha['mini']}',
             fnc: (){}
           ),
-          Selector<ProcessProvider, int>(
-            selector: (_, provi) => provi.nRevRm,
-            builder: (_, cant, __) {
-
-              return _btnIconAndTxt(
-                icono: (cant.isEven)
-                ? Icons.public : Icons.remove_red_eye_outlined,
-                txt: '$cant',
-                tip: 'Número de Revisión Remota',
-                fnc: (){}
-              );
-            },
-          ),
           const SizedBox(width: 10),
-          Selector<ProcessProvider, int>(
-            selector: (_, provi) => provi.timer,
-            builder: (_, cant, __) {
-              return _btnIconAndTxt(
-                icono: (cant.isOdd)
-                ? Icons.remove_red_eye_outlined : Icons.maximize_outlined,
-                txt: '$cant',
-                tip: 'Número de Revisión Local',
-                fnc: (){}
-              );
-            },
+          _btnIconAndTxt(
+            icono: (!procW.isStopCronFles)
+            ? Icons.remove_red_eye_outlined : Icons.maximize_outlined,
+            txt: '${procW.timer}',
+            tip: 'Número de Revisión Local / ${proc.cadaL} Seg.',
+            fnc: (){}
           ),
-          Selector<ProcessProvider, int>(
-            selector: (_, provi) => provi.timerS,
-            builder: (_, cant, __) {
-              return _btnIconAndTxt(
-                isReverse: true,
-                icono: (cant.isEven)
-                ? Icons.remove_red_eye_outlined : Icons.maximize_outlined,
-                txt: '$cant',
-                tip: 'Número de Revisión al Stage',
-                fnc: (){}
-              );
-            },
+          _btnIconAndTxt(
+            icono: (!procW.isStopCronStage)
+            ? Icons.remove_red_eye_outlined : Icons.maximize_outlined,
+            txt: '${procW.timerS}',
+            tip: 'Número de Revisión al Stage / ${proc.cadaS} Seg.',
+            fnc: (){}
           ),
       ],
     );
@@ -191,4 +153,5 @@ class _StatusBarrState extends State<StatusBarr> {
       )
     );
   }
+
 }
