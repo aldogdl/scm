@@ -420,6 +420,7 @@ class _SendToReceiverState extends State<SendToReceiver> {
   Future<void> _escribirMsg() async {
 
     if(!mounted){ return; }
+
     await isPaused();
     if(_proc.isRefresh) {
       _refreshPage();
@@ -438,7 +439,7 @@ class _SendToReceiverState extends State<SendToReceiver> {
       );
 
       List<String> msgSend = (_msgC.isNotEmpty) ? _msgC : _getMsgOfReceiver();
-      
+
       BrowserTask.escribirMsg(msgSend).listen((event) async {
 
         if(event == 'ok') {

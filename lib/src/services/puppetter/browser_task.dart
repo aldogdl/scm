@@ -14,7 +14,6 @@ class BrowserTask {
   static BrowserSng browserSng = getSngOf<BrowserSng>();
   static int espera = 10;
   static const Duration _tiempoDeEscritura = Duration(milliseconds: 8);
-  static const String prefixHtml = '#main>footer>div._2BU3P.tm2tP.copyable-area>div>span:nth-child(2)>div>div';
   static const String chatContacts = 'Contactos';
   static List<String> comparaCon = [];
 
@@ -408,8 +407,10 @@ class BrowserTask {
 
   /// La lista de los elementos HTML de la App Whatsappweb
   static const mapConcep = <String, Map<String, String>>{
+    // #main>footer>div._2BU3P.tm2tP.copyable-area>div>span:nth-child(2)>div>div._2lMWa>div.p3_M1>div>div._13NKt.copyable-text.selectable-text
     
-    'bskContac' : {
+    
+   'bskContac' : {
       'desc' : 'Cuadro de texto para ingresar la búsqueda',
       'html' : '#side>div.uwk68>div>div>div._16C8p>div>div._13NKt.copyable-text.selectable-text',
     },
@@ -431,7 +432,7 @@ class BrowserTask {
     },
     'writeMsg' : {
       'desc' : 'La caja de texto para escribir mensajes.',
-      'html' : '$prefixHtml._2lMWa>div.p3_M1>div>div._13NKt.copyable-text.selectable-text'
+      'html' : '#main>footer>div._2BU3P.tm2tP.copyable-area>div>span:nth-child(2)>div>div._2lMWa>div.p3_M1>div>div.fd365im1.to2l77zo.bbv8nyr4.mwp4sxku.gfz4du6o.ag5g9lrv'
     },
     'btnSend' : {
       'desc' : 'El boton para finalmente enviar el mensajes.',
