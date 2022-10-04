@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:glass_kit/glass_kit.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
-import 'package:network_info_plus/network_info_plus.dart';
 import 'package:scm/src/pages/portada_page.dart';
 
 import 'layout_page.dart';
@@ -34,7 +33,6 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _pass = TextEditingController();
   final FocusNode _fcurc = FocusNode();
   final FocusNode _fpass = FocusNode();
-  final _info = NetworkInfo();
 
   late final SocketConn _sock;
   bool _showPass = true;
@@ -350,26 +348,26 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _initWidget(_) async {
 
     _pass.text = '';
-    try {
-      await _sock.getNameRed();
-    } catch (e) {
-      showDialog(
-        context: context,
-        builder: (_) => const SimpleDialog(
-          insetPadding: EdgeInsets.all(20),
-          alignment: Alignment.center,
-          children: [
-            Texto(
-              txt: 'Por favor, es necesario que estés conectado '
-              'a algúna RED por medio de Cable o WiFi.\nDespués '
-              'será necesario que reinicies el programa.',
-              isCenter: true,
-            )
-          ],
-        )
-      );
-      return;
-    }
+    // try {
+    //   await _sock.getNameRed();
+    // } catch (e) {
+    //   showDialog(
+    //     context: context,
+    //     builder: (_) => const SimpleDialog(
+    //       insetPadding: EdgeInsets.all(20),
+    //       alignment: Alignment.center,
+    //       children: [
+    //         Texto(
+    //           txt: 'Por favor, es necesario que estés conectado '
+    //           'a algúna RED por medio de Cable o WiFi.\nDespués '
+    //           'será necesario que reinicies el programa.',
+    //           isCenter: true,
+    //         )
+    //       ],
+    //     )
+    //   );
+    //   return;
+    // }
 
     _absorbing = false;
     _pass.text = '';
@@ -392,16 +390,11 @@ class _LoginPageState extends State<LoginPage> {
   ///
   Future<void> _checkRedLan() async {
 
-    String? ip = await _info.getWifiIP();
-    if(ip == null || ip.isEmpty) {
-      _hasLan = false;
-    }else{
-      _hasLan = true;
-    }
     _sock.msgErr = await _sock.getIpToHarbiFromServer();
     if(!_sock.msgErr.startsWith('ERROR')) {
       _sock.msgErr = 'AUTENTÍCATE POR FAVOR';
     }
+
     Future.delayed(const Duration(microseconds: 300), (){
       setState(() {});
     });
@@ -422,6 +415,7 @@ class _LoginPageState extends State<LoginPage> {
       _sock.isLoged = false;
       _sock.msgErr = 'Revisando conexión con Harbi';
       _sock.msgErr = await _sock.probandoConnWithHarbi();
+      
       if(_sock.msgErr.startsWith('ERROR')) {
         setState(() { _absorbing = false; });
         return;

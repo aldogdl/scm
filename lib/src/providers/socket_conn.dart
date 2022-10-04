@@ -370,7 +370,7 @@ class SocketConn extends ChangeNotifier {
 
     bool containBaseR = false;
     await MyHttp.get('http://${globals.ipHarbi}:${globals.portHarbi}/api_harbi/get_ipdb');
-    
+
     try {
       if(MyHttp.result['body'].containsKey('base_r')) {
         containBaseR = true;

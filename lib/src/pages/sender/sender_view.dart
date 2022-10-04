@@ -796,7 +796,7 @@ class _SenderViewState extends State<SenderView> {
       if(nav.canPop()) {
         nav.pop();
       }else{
-        print('No pudo hacer pop al finalizar');
+        //print('No pudo hacer pop al finalizar');
       }
       return;
     }
