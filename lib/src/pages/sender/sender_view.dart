@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:scm/src/widgets/indicador_cola.dart';
 
 import 'views/fin_process.dart';
 import 'views/init_process.dart';
@@ -16,6 +15,7 @@ import '../../services/get_content_files.dart';
 import '../../services/puppetter/libs/task_shared.dart';
 import '../../services/puppetter/libs/lib_fin_process.dart';
 import '../../widgets/texto.dart';
+import '../../widgets/indicador_cola.dart';
 import '../../widgets/tile_contacts.dart';
 
 class SenderView extends StatefulWidget {
@@ -57,6 +57,7 @@ class _SenderViewState extends State<SenderView> {
       if(widget.isCheck) {
         _pprov.isTest = true;
       }else{
+        
         if(_consol.terminalIsMini) {
           _consol.terminalIsMini = false;
         }

@@ -382,6 +382,7 @@ class _LoginPageState extends State<LoginPage> {
       });
       items.add('Usar Otro Usuario');
     }
+
     _defaultUser = items.first;
     _defaultCurc = (lstCurcs.isNotEmpty) ? lstCurcs.first : '';
     Future.microtask(() => _users.value = uss);
@@ -473,40 +474,54 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _hidratarFileFromUser(Map<String, dynamic> data) async {
 
     String uri = await GetPaths.getFileByPath('connpass');
+    List<Map<String, dynamic>> users = [];
+
     final regs = File(uri);
-    Map<String, dynamic> users = {};
-    bool addUser = true;
     if(regs.existsSync()) {
-      final content = regs.readAsStringSync();
       
+      final content = regs.readAsStringSync();
       if(content.isNotEmpty) {
-        users = Map<String, dynamic>.from(json.decode(content));
-        if(users.isNotEmpty) {
-          if(users.containsKey(data['password'])) {
-            users[data['password']] = _globals.user.userToJson();
-            addUser = false;
+
+        final c = json.decode(content);
+
+        if(c.runtimeType == List<dynamic>) {
+          users = List<Map<String, dynamic>>.from(c);
+          final has = users.indexWhere((e) => e['curc'] == data['username']);
+          if(has != -1) {
+            users[has] = _globals.user.userToJson();
+          }else{
+            users.add(_globals.user.userToJson());
           }
+        }else{
+          users.add(_globals.user.userToJson());
         }
       }
+    }else{
+      users.add(_globals.user.userToJson());
     }
-    
-    if(addUser) {
-      users.putIfAbsent(data['password'], () => _globals.user.userToJson());
-    }
+
     regs.writeAsStringSync(json.encode(users));
   }
 
   ///
   Future<Map<String, dynamic>> _getUserFromFile() async {
 
+    Map<String, dynamic> users = {};
     String uri = await GetPaths.getFileByPath('connpass');
     final regs = File(uri);
     if (regs.existsSync()) {
       final content = regs.readAsStringSync();
       if(content.isNotEmpty) {
-        return Map<String, dynamic>.from(json.decode(content));
+        final c = json.decode(content);
+        if(c.runtimeType == List<dynamic>) {
+          for (var i = 0; i < c.length; i++) {
+            users.putIfAbsent(c[i]['curc'], () => c[i]);
+          }
+          return users;
+        }
+        users = Map<String, dynamic>.from(c);
       }
     }
-    return {};
+    return users;
   }
 }

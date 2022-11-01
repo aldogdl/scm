@@ -5,7 +5,7 @@ import '../entity/contacto_entity.dart';
 
 class Globals {
 
-  String ver = '1.3.1';
+  String ver = '1.4.5';
   Size sizeWin = const Size(0, 0);
   bool isLocalConn = false;
   String wifiName = '';
