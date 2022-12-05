@@ -4,11 +4,50 @@ import 'package:puppeteer/puppeteer.dart' as pupp show
 ElementHandle, Key;
 
 import 'task_shared.dart';
-import 'vars_write_msg.dart';
 import '../providers/browser_provider.dart';
 import '../vars_puppe.dart';
 import '../../../providers/terminal_provider.dart';
 import '../../../providers/process_provider.dart';
+
+///
+enum WriteMsgT {
+  html, bskBoxWrite, capturCheckBox, writeMsg, checkChat, checkMsg, send
+}
+Map<WriteMsgT, Map<String, String>> writeMsgt = {
+  WriteMsgT.html: {
+    'caja': '#main>footer>div._2BU3P.tm2tP.copyable-area>div>span:nth-child(2)>div>div._2lMWa>div.p3_M1>div>div.fd365im1.to2l77zo.bbv8nyr4.mwp4sxku.gfz4du6o.ag5g9lrv',
+    'send': '#main>footer>div._2BU3P.tm2tP.copyable-area>div>span:nth-child(2)>div>div._2lMWa>div._3HQNh._1Ae7k>button',
+    'check': '#main>footer>div._2BU3P.tm2tP.copyable-area>div>span:nth-child(2)>div>div._2lMWa>div._3HQNh._1Ae7k>button>span',
+    'chatRoomTitulo': '#main>header>div._24-Ff>div._2rlF7>div>span',
+  },
+  WriteMsgT.bskBoxWrite: {
+    'task': 'Detectando Caja de Mensajes',
+  },
+  WriteMsgT.capturCheckBox: {
+    'task': 'Capturando Caja de Mensajes',
+  },
+  WriteMsgT.writeMsg: {
+    'task': 'Escribiendo Mensaje',
+  },
+  WriteMsgT.checkChat: {
+    'task': 'Checando el Chat Room',
+  },
+  WriteMsgT.checkMsg: {
+    'task': 'Revisando el mensaje',
+  },
+  WriteMsgT.send: {
+    'task': 'Mensaje Enviado',
+  }
+};
+
+///
+List<String> errsWrite = [
+  'ERROR<retry>, El Chat room no tenia el mismo titulo que el CURC.',
+  'ERROR<retry>, No se alcanzó la caja de texto para escritura de mensajes.',
+  'ERROR<retry>, No se pudo eliminar el contenido del mensaje.',
+  'ERROR<retry>, El mensaje se escribió incorrecto.',
+  'ERROR<retry>, No se alcanzó el Boton de envio de mensajes.'
+];
 
 class LibWriteMsg {
 
@@ -30,6 +69,7 @@ class LibWriteMsg {
   pupp.ElementHandle? element;
   String curcInterno = '';
   String nameInterno = '';
+  List<String> _msg = [];
   final String _ae = 'Analizando Error!!';
   bool _isBlock = false;
 
@@ -40,14 +80,14 @@ class LibWriteMsg {
 
     curcInterno = pprov.curcProcess;
     nameInterno = pprov.nombreProcess;
-
+    _msg = List<String>.from(pprov.msgCurrent);
+    
     await tituloSecc(console, 'writeMsg >> $curcInterno');
-    await _sleep(time: 500);
+    await _sleep(time: 350);
     
     _procMaster = WriteMsgT.bskBoxWrite;
 
     yield task;
-    await _sleep();
     res = await _bskBoxWrite();
     if(res != 'ok') {
       yield _ae;
@@ -58,7 +98,6 @@ class LibWriteMsg {
 
     _procMaster = WriteMsgT.capturCheckBox;
     yield task;
-    await _sleep();
     res = await _capturCheckBox();
     if(res != 'ok') {
       yield _ae;
@@ -69,7 +108,6 @@ class LibWriteMsg {
 
     _procMaster = WriteMsgT.checkChat;
     yield task;
-    await _sleep();
     res = await _checkChat();
     if(res != 'ok') {
       yield _ae;
@@ -80,7 +118,6 @@ class LibWriteMsg {
 
     _procMaster = WriteMsgT.writeMsg;
     yield task;
-    await _sleep();
     res = await _writeMsg();
     await _release();
     if(res != 'ok') {
@@ -92,7 +129,6 @@ class LibWriteMsg {
 
     _procMaster = WriteMsgT.checkMsg;
     yield task;
-    await _sleep();
     res = await _checkMsg();
     if(res != 'ok') {
       yield _ae;
@@ -103,7 +139,6 @@ class LibWriteMsg {
 
     _procMaster = WriteMsgT.send;
     yield task;
-    await _sleep();
     res = await _sendMsg();
     if(res != 'ok') {
       yield _ae;
@@ -113,9 +148,9 @@ class LibWriteMsg {
     addP();
 
     addP();
-    console.addOk('Listo! Siguiente paso...');
+    console.addOk('Listo! Siguiente Remitente');
     await _sleep();
-    yield 'Listo! Siguiente paso...';
+    yield '√ Listo! Siguiente Remitente >>';
   }
 
 
@@ -140,7 +175,7 @@ class LibWriteMsg {
         writeMsgt[WriteMsgT.html]!['caja']!, timeout: esperarPorHtml
       );
     } catch (e) {
-      return errsWrite[0];
+      return errsWrite[1];
     }
 
     return 'ok';
@@ -157,7 +192,7 @@ class LibWriteMsg {
       );
       if(btnSend != null) { return 'ok'; }
     } catch (_) { }
-    return errsWrite[0];
+    return errsWrite[1];
   }
 
   ///
@@ -179,7 +214,7 @@ class LibWriteMsg {
       }
     }
 
-    return errsWrite[0];
+    return errsWrite[1];
   }
 
   ///
@@ -196,16 +231,16 @@ class LibWriteMsg {
 
     console.addTask(task);
 
-    for (var i = 0; i < pprov.msgCurrentFormat.length; i++) {
+    for (var i = 0; i < _msg.length; i++) {
 
-      if(pprov.msgCurrentFormat[i].contains('_sp_')) {
-        await wprov.pagewa!.keyboard.down(pupp.Key.control);
-        await wprov.pagewa!.keyboard.press(pupp.Key.enter);
-        await wprov.pagewa!.keyboard.up(pupp.Key.control);
-        await _sleep(time: 100);
+      if(_msg[i].contains('_sp_')) {
+        await _putSpacer();
       }else{
+        if(_msg[i].contains('_link_')) {
+          _msg[i] = _changeLink(_msg[i]);
+        }
         try {
-          await Clipboard.setData(ClipboardData(text: pprov.msgCurrentFormat[i]));
+          await Clipboard.setData(ClipboardData(text: _msg[i]));
           await pegarDash(element: element!, page: wprov.pagewa!);
           await Clipboard.setData(const ClipboardData(text: ''));
         } catch (e) {
@@ -231,21 +266,34 @@ class LibWriteMsg {
 
     console.addTask('Typeando: $curcInterno');
     await _sleep();
-    for (var i = 0; i < pprov.msgCurrentFormat.length; i++) {
-      if(pprov.msgCurrentFormat[i].contains('_sp_')) {
-        await wprov.pagewa!.keyboard.down(pupp.Key.control);
-        await wprov.pagewa!.keyboard.press(pupp.Key.enter);
-        await wprov.pagewa!.keyboard.up(pupp.Key.control);
-        await _sleep(time: 100);
+    for (var i = 0; i < _msg.length; i++) {
+      if(_msg[i].contains('_sp_')) {
+        await _putSpacer();
       }else{
-        
+        if(_msg[i].contains('_link_')) {
+          _msg[i] = _changeLink(_msg[i]);
+        }
         await element!.type(
-          pprov.msgCurrentFormat[i], delay: const Duration(milliseconds: 90)
+          _msg[i], delay: const Duration(milliseconds: 80)
         );
       }
     }
 
     return await _checkMsg(from: 'typea');
+  }
+
+  ///
+  String _changeLink(String line) {
+    
+    return line.replaceFirst('_link_', pprov.receiverCurrent!.link);
+  }
+
+  ///
+  Future<void> _putSpacer() async {
+    await wprov.pagewa!.keyboard.down(pupp.Key.control);
+    await wprov.pagewa!.keyboard.press(pupp.Key.enter);
+    await wprov.pagewa!.keyboard.up(pupp.Key.control);
+    await _sleep(time: 100);
   }
 
   ///
@@ -265,8 +313,8 @@ class LibWriteMsg {
         }
       }
 
+      final comparaCon = buildMsgCom(pprov);
       contenido = msg.join(' ');
-      final comparaCon = await _buildCom();
 
       for (var i = 0; i < comparaCon.length; i++) {
         if(!contenido.contains(comparaCon[i])) {
@@ -275,6 +323,7 @@ class LibWriteMsg {
         }
       }
     }
+
     if(isOkTxtRes) {
       return 'ok';
     }else{
@@ -308,7 +357,7 @@ class LibWriteMsg {
         }
       }
 
-      return errsWrite[3];
+      return errsWrite[4];
     }else{
       console.addWar('---->>>> SIN ENVIO <<<<----');
       await _sleep();
@@ -332,21 +381,6 @@ class LibWriteMsg {
       }
     }
     return 'ok';
-  }
-
-  /// Tomamos una lista de palabras las cuales son utilizadas para
-  /// comparar el mensaje escrito final, y ver si este es integro.
-  Future<List<String>> _buildCom() async {
-
-    console.addTask('Creando MSG. Comparativo');
-    if(curcInterno == chatContacts) {
-      return ['contacto', 'inexistente'];
-    }
-    String nombre = nameInterno;
-    if(pprov.isTest) {
-      nombre = pprov.receiverCurrent.nombre;
-    }
-    return buildMsgCom(pprov, nombre: nombre);
   }
 
   ///

@@ -7,6 +7,7 @@ import 'package:network_info_plus/network_info_plus.dart';
 
 import '../entity/contacto_entity.dart';
 import '../config/sng_manager.dart';
+import '../services/get_content_files.dart';
 import '../services/my_http.dart';
 import '../services/get_paths.dart';
 import '../vars/globals.dart';
@@ -128,17 +129,6 @@ class SocketConn extends ChangeNotifier {
     _socket == null;
   }
 
-  ///
-  Future<void> getNameRed() async {
-
-    if (globals.myIp.isEmpty) {
-      globals.wifiName = await info.getWifiName() ?? '';
-      globals.myIp = await info.getWifiIP() ?? '';
-      globals.wifiName = 'Oculta';
-      notifyListeners();
-    }
-  }
-
   /// Retorna true si la las variables de conexion estan correctas.
   bool checkConeccion() {
 
@@ -229,6 +219,11 @@ class SocketConn extends ChangeNotifier {
       _socket = IOWebSocketChannel.connect(
         Uri.parse('ws://${globals.ipHarbi}:${globals.portHarbi}/socket')
       );
+      _socket!.stream.listen((event) {
+        pin = 'ok';
+        isConnectedSocked = true;
+        _determinarEvento(Map<String, dynamic>.from(json.decode(event)));
+      });
     } catch (e) {
       msgErr = '[X] Error al Intentar conectar a HARBI';
       return;
@@ -236,16 +231,6 @@ class SocketConn extends ChangeNotifier {
 
     msgErr = 'Esperando Respuesta de Conexión';
     await Future.delayed(const Duration(milliseconds: 1000));
-    
-    try {
-      _socket!.stream.listen((event) {
-        pin = 'ok';
-        isConnectedSocked = true;
-        _determinarEvento(Map<String, dynamic>.from(json.decode(event)));
-      });
-    } catch (_) {
-      msgErr = 'Reutilizando Stream Listener';
-    }
   }
 
   ///
@@ -332,7 +317,13 @@ class SocketConn extends ChangeNotifier {
   Future<String> getIpToHarbiFromServer() async {
 
     String ipH = 'Comunicate con Sistemas';
-    String url = 'https://autoparnet.com/home-controller/get-data-connection/123H/';    
+
+    String url = 'https://autoparnet.com';    
+    if(globals.env == 'dev') {
+      url = 'http://localhost/autoparnet/public_html';
+    }
+    url = '$url/home-controller/get-data-connection/2536H/';
+  
     try {
       await MyHttp.get(url);
     } catch (e) {
@@ -365,12 +356,37 @@ class SocketConn extends ChangeNotifier {
     return 'ERROR desconocido, $ipH';
   }
 
+  
+  /// Recuperamos la Ip de Harbi, de manera local.
+  Future<String> getIpToHarbiFromLocal() async {
+
+    final ipCode = GetContentFile.ipConectionLocal();
+    final ipH = utf8.decode(base64Decode(ipCode));
+
+    if(ipH.contains(':')) {
+      final partes = List<String>.from(ipH.split(':'));
+      globals.ipHarbi = partes.first;
+      globals.portHarbi = partes.last;
+      final response = await probandoConnWithHarbi();
+      if(!response.contains('ERROR')){
+        globals.mySwh = ipCode;
+        return 'Datos de conexión recuperados';
+      }else{
+        globals.ipHarbi = '';
+        globals.portHarbi = '';
+        globals.mySwh = '';
+      }
+    }
+
+    return 'ERROR desconocido, $ipH';
+  }
+
   ///
   Future<String> probandoConnWithHarbi() async {
 
     bool containBaseR = false;
     await MyHttp.get('http://${globals.ipHarbi}:${globals.portHarbi}/api_harbi/get_ipdb');
-
+    
     try {
       if(MyHttp.result['body'].containsKey('base_r')) {
         containBaseR = true;
@@ -391,7 +407,11 @@ class SocketConn extends ChangeNotifier {
   ///
   Future<bool> hacerLoginFromServer(Map<String, dynamic> data) async {
 
-    String domi = await GetPaths.getDominio(isLocal: globals.isLocalConn);
+    bool isLocal = globals.isLocalConn;
+    if(globals.env == 'dev') {
+      isLocal = true;
+    }
+    String domi = await GetPaths.getDominio(isLocal: isLocal);
     final isToken = await MyHttp.makeLogin(domi, data);
     if(isToken.isNotEmpty) {
       globals.user.tkServ = isToken;
@@ -409,8 +429,12 @@ class SocketConn extends ChangeNotifier {
   ///
   Future<bool> getDataUserByCampo(String curc) async {
 
+    bool isLocal = globals.isLocalConn;
+    if(globals.env == 'dev') {
+      isLocal = true;
+    }
     String domi = await GetPaths.getUri(
-      'get_user_by_campo', isLocal: globals.isLocalConn
+      'get_user_by_campo', isLocal: isLocal
     );
     await MyHttp.get('$domi?campo=curc&valor=$curc');
     if(!MyHttp.result['abort']) {

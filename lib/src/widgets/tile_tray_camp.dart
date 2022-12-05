@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
+import 'package:scm/src/widgets/my_tool_tip.dart';
 
 import '../services/my_utils.dart';
 import 'texto.dart';
@@ -17,6 +18,10 @@ class TileTrayCamp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
+    if(dataTray.isEmpty) {
+      return const SizedBox();
+    }
+    
     return Container(
       width: appWindow.size.width,
       margin: const EdgeInsets.only(bottom: 7),
@@ -25,37 +30,43 @@ class TileTrayCamp extends StatelessWidget {
         color: Colors.white.withOpacity(0.5),
         border: Border.all(color: const Color.fromARGB(255, 57, 75, 83))
       ),
-      child: Row(
+      child: Column(
         children: [
-          _avatar(),
-          Expanded(
-            child: _dataCamp(),
+          Row(
+            children: [
+              _avatar(),
+              Expanded(
+                child: _dataCamp(),
+              ),
+            ],
           ),
+          _pie()
         ],
-      ),
+      )
     );
   }
 
   ///
   Widget _avatar() {
 
-    bool isCurrent = false;
-    if(dataTray['id'] == idCurrent) {
-      isCurrent = true;
-    }
-    if(dataTray.containsKey('isCurrent')) {
-      isCurrent = dataTray['isCurrent'];
+    String idTarget = '0';
+    if(dataTray.containsKey(dataTray['target'])) {
+      idTarget = '${dataTray[dataTray['target']]['id']}';
+    }else{
+      if(dataTray.containsKey('data')) {
+        if(dataTray['data'].containsKey['id']) {
+          idTarget = '${dataTray['data']['id']}';
+        }
+      }
     }
 
     return Column(
       children: [
         Container(
           width: 45, height: 38,
-          decoration: BoxDecoration(
-            color: (isCurrent)
-            ? const Color.fromARGB(255, 90, 91, 124)
-            : const Color.fromARGB(255, 135, 136, 184),
-            border: const Border(
+          decoration: const BoxDecoration(
+            color: Color.fromARGB(255, 135, 136, 184),
+            border: Border(
               right: BorderSide(color: Color.fromARGB(255, 76, 99, 110))
             )
           ),
@@ -75,11 +86,12 @@ class TileTrayCamp extends StatelessWidget {
                     horizontal: 5, vertical: 2
                   ),
                   decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 79, 93, 133),
+                    color: const Color.fromARGB(255, 46, 47, 49),
                     borderRadius: BorderRadius.circular(8)
                   ),
                   child: Texto(
-                    txt: '${dataTray['id']}', txtC: Colors.white, sz: 10,
+                    txt: idTarget,
+                    txtC: Colors.white, sz: 10,
                   ),
                 )
               )
@@ -93,37 +105,29 @@ class TileTrayCamp extends StatelessWidget {
   ///
   Widget _dataCamp() {
 
-    bool isPrio = false;
-    bool isCurrent = false;
-    if(dataTray['id'] == idCurrent) {
-      isPrio = true;
-      isCurrent = true;
+    String nombre = dataTray['emiter']['nombre'];
+    if(nombre.length > 25) {
+      nombre = nombre.substring(0, 25);
+      nombre = '$nombre...';
     }
-
-    if(dataTray.containsKey('isCurrent')) {
-      isCurrent = dataTray['isCurrent'];
-    }
-    if(dataTray.containsKey('isPrio')) {
-      isPrio = dataTray['isPrio'];
-    }
-
-    final f = _extractFecha(dataTray['createdAt']);
-    String empresa = dataTray['emiter']['empresa'].toUpperCase();
-    if(empresa.length > 25) {
-      empresa = empresa.substring(0, 25);
-      empresa = '$empresa...';
-    }
-    int cut = 15;
-    if(dataTray['id'] > 9999) {
-      cut = 10;
-    }
-    String campaing = dataTray['campaing']['titulo'];
-    if(campaing.length > cut) {
-      campaing = campaing.substring(0, cut);
-      campaing = '$campaing...';
-    }
-    final sended = dataTray['toSend'].length - dataTray['noSend'].length;
     
+    String remi = dataTray['remiter']['nombre'];
+    if(remi.length > 12) {
+      remi = remi.substring(0, 12);
+      remi = '$remi...';
+    }
+
+    Map<String, dynamic> data = {};
+    if(dataTray.containsKey(dataTray['target'])) {
+      data = dataTray[dataTray['target']];
+    }else{
+      if(dataTray.containsKey('data')) {
+        if(dataTray['data'].containsKey['id']) {
+          data = dataTray['data'];
+        }
+      }
+    }
+
     return Container(
       height: 38,
       padding: const EdgeInsets.only(
@@ -141,22 +145,27 @@ class TileTrayCamp extends StatelessWidget {
         children: [
           Row(
             children: [
-              if(isPrio)
-                ...[
-                  const Icon(Icons.start, size: 15, color: Colors.yellowAccent),
-                  const SizedBox(width: 4)
-                ],
-              Expanded(
-                child: Texto(
-                  txt: empresa, sz: 13,
-                  txtC: const Color.fromARGB(255, 60, 78, 87),
-                  isBold: (isCurrent) ? true : false,
-                ),
+              Texto(
+                txt: '${data['modelo']}', sz: 13,
+                txtC: const Color.fromARGB(255, 60, 78, 87),
+                isBold: true
+              ),
+              const SizedBox(width: 10),
+              Texto(
+                txt: '${data['anio']}', sz: 13,
+                txtC: const Color.fromARGB(255, 60, 78, 87),
+                isBold: true
+              ),
+              const Spacer(),
+              Texto(
+                txt: '${data['marca']}',
+                sz: 11, txtC: const Color.fromARGB(255, 31, 40, 44),
+                isBold: true
               ),
               Texto(
-                txt: '$sended-${dataTray['toSend'].length}',
+                txt: '  Pzas. ${data['piezas']}',
                 sz: 11, txtC: const Color.fromARGB(255, 31, 40, 44),
-                isBold: (isCurrent) ? true : false,
+                isBold: true
               )
             ],
           ),
@@ -172,20 +181,21 @@ class TileTrayCamp extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Texto(
-                  txt: 'Prio.: ${dataTray['campaing']['priority']}', sz: 11.5,
-                  txtC: const Color.fromARGB(255, 63, 67, 121)
-                ),
-                const SizedBox(width: 8),
-                Texto(
-                  txt: campaing, sz: 13,
-                  txtC: const Color.fromARGB(255, 37, 47, 53)
+                MyToolTip(
+                  msg: dataTray['emiter']['empresa'],
+                  child: Texto(
+                    txt: 'E: $nombre', sz: 11.5, isBold: true,
+                    txtC: const Color.fromARGB(255, 63, 67, 121)
+                  ),
                 ),
                 const Spacer(),
-                Texto(
-                  txt: f['tiempo'], sz: 11, isBold: true,
-                  txtC: const Color.fromARGB(255, 37, 47, 53)
-                ),
+                MyToolTip(
+                  msg: dataTray['remiter']['nombre'],
+                  child: Texto(
+                    txt: 'R: $remi', sz: 11,
+                    txtC: const Color.fromARGB(255, 63, 67, 121)
+                  ),
+                )
               ],
             ),
           )
@@ -194,6 +204,35 @@ class TileTrayCamp extends StatelessWidget {
     );
   }
 
+  ///
+  Widget _pie() {
+
+    final f = _extractFecha(dataTray['created']);
+    
+    return Row(
+      children: [
+        Expanded(
+          child: Texto(
+            txt: dataTray['titulo'], sz: 13,
+            txtC: const Color.fromARGB(255, 34, 45, 51),
+            isBold: false
+          )
+        ),
+        Texto(
+          txt: 'R: ${dataTray['toSend']}',
+          sz: 11, txtC: const Color.fromARGB(255, 37, 47, 53),
+          isBold: true
+        ),
+        const SizedBox(width: 5),
+        Texto(
+          txt: 'T:${f['tiempo']}', sz: 11, isBold: true,
+          txtC: const Color.fromARGB(255, 0, 0, 0)
+        ),
+        const SizedBox(width: 8),
+      ],
+    );
+  }
+  
   ///
   Map<String, dynamic> _extractFecha(dynamic fecha) {
 

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:scm/src/pages/home_page.dart';
 
 import 'src/config/sng_manager.dart';
 import 'src/pages/login_page.dart';
-import 'src/pages/portada_page.dart';
 import 'src/providers/process_provider.dart';
 import 'src/providers/socket_conn.dart';
 import 'src/providers/terminal_provider.dart';
@@ -100,9 +100,17 @@ class BuildContextGral extends StatelessWidget {
     return Overlay(
       initialEntries: [
         OverlayEntry(
-          builder: (ctxTwo) => (!ctxTwo.watch<SocketConn>().isLoged)
-          ? const LoginPage()
-          : const PortadaPage()
+          builder: (ctxTwo) {
+
+            return Selector<SocketConn, bool>(
+              selector: (_, prov) => prov.isLoged,
+              builder: (_, isLog, __) {
+                return (isLog)
+                  ? const HomePage()
+                  : const LoginPage();
+              },
+            );
+          }
         )
       ],
     );

@@ -10,8 +10,6 @@ class GetPaths {
 
   static final Globals globals = getSngOf<Globals>();
 
-  static String env = 'prod';
-
   static const String package = 'autoparnet';
   static const String nameFilePaths = 'paths_dev.json';
   static const String nameFilePathsP = 'paths_prod.json';
@@ -164,8 +162,8 @@ class GetPaths {
     String sufix = (isLocal) ? 'l' : 'r';
     return {
       'url': pathDt['base_$sufix'],
-      'u': pathDt['uri']['u_$env'],
-      'p': pathDt['uri']['p_$env'],
+      'u': pathDt['uri']['u_${globals.env}'],
+      'p': pathDt['uri']['p_${globals.env}'],
       'ssl': true
     };
   }

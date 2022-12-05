@@ -76,16 +76,6 @@ class EstStt {
     return rstt;
   }
 
-  /// Obtenemos la siguiente estacion
-  static String getNextEst(Map<String, dynamic> data) {
-
-    _putIfAbsent(data['rta']);
-    if(r.rutas.containsKey(data['rta'])) {
-      //TODO
-    }
-    return 'Ruta Desconocida';
-  }
-
   /// Obtenemos la estacion solicitada
   static String getEst(Map<String, dynamic> data) {
 
@@ -95,7 +85,6 @@ class EstStt {
     }
     return 'Ruta Desconocida';
   }
-
 
   /// Obtenemos el estatus segun su estacion
   static String getSttByEst(Map<String, dynamic> data) {

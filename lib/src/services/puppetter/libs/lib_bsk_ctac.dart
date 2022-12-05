@@ -4,11 +4,46 @@ import 'package:puppeteer/puppeteer.dart' as pupp show
 ElementHandle;
 
 import 'task_shared.dart';
-import 'vars_bsk_contact.dart';
 import '../providers/browser_provider.dart';
 import '../vars_puppe.dart';
 import '../../../providers/process_provider.dart';
 import '../../../providers/terminal_provider.dart';
+
+///
+enum TaskContac {
+  html, bskContac, capturBox, capturCheckBox, writeCtac, checkCtac
+}
+Map<TaskContac, Map<String, String>> taskContact = {
+  TaskContac.html: {
+    'caja': '#side>div.uwk68>div>div>div._16C8p>div>div._13NKt.copyable-text.selectable-text',
+    'back': '#side>div.uwk68>div>div>button._28-cz',
+    'xDel': '#side>div.uwk68>div>div>span>button._3GYfN'
+  },
+  TaskContac.bskContac: {
+    'task': 'Detectando Caja de Búsqueda',
+  },
+  TaskContac.capturBox: {
+    'task': 'Capturando Caja de Búsqueda',
+  },
+  TaskContac.capturCheckBox: {
+    'task': 'Asegurando captura de Caja',
+  },
+  TaskContac.writeCtac: {
+    'task': 'Escribiendo nombre del Contacto',
+  },
+  TaskContac.checkCtac: {
+    'task': 'Revisando nombre del Contacto',
+  },
+};
+
+///
+List<String> errsContact = [
+  'ERROR,<stop> Sin Conexión a Internet',
+  'ERROR,<retry> No se alcanzó la caja de Búsqueda de Contactos.',
+  'ERROR,<retry> No se escribió el CURC en la caja de Busqueda de contacto',
+  'ERROR,<retry> El sistema sobre paso el tiempo de espera al querer buscar el contacto.',
+  'ERROR,<retry> No se recibió el CURC. variable bacía'
+];
 
 class LibBskCtac {
 
@@ -40,14 +75,11 @@ class LibBskCtac {
 
     curcInterno = pprov.curcProcess;
     nameInterno = pprov.nombreProcess;
-
     await tituloSecc(console, 'bskContac >> $curcInterno');
-    await _sleep(time: 500);
+    await _sleep(time: 350);
 
-    _procMaster = TaskContac.bskContac;    
-
+    _procMaster = TaskContac.bskContac;
     yield task;
-    await _sleep();
     res = await _bskContac();
     if(res != 'ok') {
       yield _ae;
@@ -58,7 +90,6 @@ class LibBskCtac {
 
     _procMaster = TaskContac.capturBox;
     yield task;
-    await _sleep();
     res = await _capturBox();
     if(res != 'ok') {
       yield _ae;
@@ -69,7 +100,6 @@ class LibBskCtac {
 
     _procMaster = TaskContac.capturCheckBox;
     yield task;
-    await _sleep();
     res = await _capturCheckBox();
     if(res != 'ok') {
       yield _ae;
@@ -80,7 +110,6 @@ class LibBskCtac {
 
     _procMaster = TaskContac.writeCtac;
     yield task;
-    await _sleep();
     res = await _writeCtac();
     if(res != 'ok') {
       yield _ae;
@@ -91,7 +120,6 @@ class LibBskCtac {
 
     _procMaster = TaskContac.checkCtac;
     yield task;
-    await _sleep();
     await _release();
     res = await _checkCtac();
     if(res != 'ok') {
@@ -131,7 +159,9 @@ class LibBskCtac {
     if(curcInterno.isEmpty || curcInterno == '0') {
       return errsContact[4];
     }
-
+    if(wprov.pagewa == null) {
+      await _reconectarSistema();
+    }
     try {
       element = await wprov.pagewa!.waitForSelector(
         taskContact[TaskContac.html]!['caja']!, timeout: esperarPorHtml
@@ -169,7 +199,7 @@ class LibBskCtac {
 
     return errsContact[1];
   }
-
+  
   ///
   Future<String> _writeCtac() async {
 
@@ -201,7 +231,7 @@ class LibBskCtac {
   Future<String> _checkCtac({String from = 'make'}) async {
 
     console.addTask(task);
-    await _sleep(time: 1500);
+    await _sleep(time: 350);
 
     var res = await getContenido(element: element!);
 
@@ -241,6 +271,10 @@ class LibBskCtac {
     console.addTask('Borrando Contenido');
     await borrarContenidoContac(element: element!, page: wprov.pagewa!);
     final res = await hasContenido(element: element!);
+    
+    // Borrar tambien lo del portapapeles
+    await Clipboard.setData(const ClipboardData(text: ''));
+    await _sleep();
 
     if(res) {
       bool pressFlecha = false;
@@ -267,6 +301,12 @@ class LibBskCtac {
         }
       }
     }
+  }
+
+  ///
+  Future<void> _reconectarSistema() async {
+
+    // TODO Ver como regresar al Widget de inicio para reconectar
   }
 
   ///

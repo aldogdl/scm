@@ -57,7 +57,7 @@ class ColaBarrDiv extends StatelessWidget {
                 selector: (_, provi) => provi.enTray,
                 builder: (_, s, __) {
                   return Texto(
-                    txt: 'de $s',
+                    txt: 'de $s Campañas',
                     txtC: Colors.black, sz: 12
                   );
                 },

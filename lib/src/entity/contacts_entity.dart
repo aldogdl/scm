@@ -30,7 +30,11 @@ class ContactEntity {
 
   ///
   void fromJson(Map<String, dynamic> json) {
-  
+    
+    if(json.containsKey('c_id')) {
+      fromServer(json);
+      return;
+    }
     id = json['id'];
     curc = json['curc'];
     nombre = json['nombre'];
@@ -42,22 +46,14 @@ class ContactEntity {
 
       if(json['empresa'].runtimeType == String) {
         if(json['empresa'] != '0') {
-          empresa = json['empresa'];
           idE = (json.containsKey('idE')) ? json['idE'] : 0;
-          domicilio = (json.containsKey('domicilio')) ? json['domicilio'] : '0';
-          cp = (json.containsKey('cp')) ? json['cp'] : 0;
-          telFijo = (json.containsKey('telFijo')) ? json['telFijo'] : '0';
+          empresa = json['empresa'];
           isLocal = (json.containsKey('isLocal')) ? json['isLocal'] : true;
-          latLng = (json.containsKey('latLng')) ? json['latLng'] : '0';
         }
       }else{
         idE = json['empresa']['id'];
         empresa = json['empresa']['nombre'];
-        domicilio = json['empresa']['domicilio'];
-        cp = json['empresa']['cp'];
-        telFijo = json['empresa']['telFijo'];
         isLocal = json['empresa']['isLocal'];
-        latLng = json['empresa']['latLng'];
       }
     }
   }

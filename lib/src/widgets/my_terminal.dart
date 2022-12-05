@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
-import 'package:scm/src/providers/process_provider.dart';
 
+import '../providers/process_provider.dart';
 import '../providers/terminal_provider.dart';
+import '../services/puppetter/browser_conn.dart';
+import '../services/puppetter/providers/browser_provider.dart';
 import '../widgets/my_terminal_code.dart';
-import '../widgets/my_terminal_header.dart';
 
 
 class MyTerminal extends StatefulWidget {
@@ -23,7 +24,6 @@ class _MyTerminalState extends State<MyTerminal> {
 
   bool _isInit = false;
   late final TerminalProvider _provR;
-  late final TerminalProvider _provW;
   String seccion = 'terminal';
 
   @override
@@ -38,46 +38,88 @@ class _MyTerminalState extends State<MyTerminal> {
     if(!_isInit) {
       _isInit = true;
       _provR= context.read<TerminalProvider>();
-      _provW = context.watch<TerminalProvider>();
     }
 
-    return Container(
-      width: appWindow.size.width -55,
-      height: _provW.terminalIsMini
-      ? appWindow.size.height * 0.05
-      : appWindow.size.height * 0.3,
-      color: Colors.black,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          TerminalHeader(
-            onClean: (_) {
-              _provR.taskTerminal = [];
-            },
-            onViewCode: (_) {
-              if(_provR.terminalIsMini) {
-                _provR.terminalIsMini = !_provW.terminalIsMini;
-              }
-              setState(() {
-                seccion = (seccion == 'code') ? 'terminal' : 'code';
-              });
-            }
+    return Stack(
+      children: [
+        Positioned(
+          child: Container(
+            width: appWindow.size.width -55,
+            height: appWindow.size.height * 0.154,
+            color: Colors.black,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                _conteoRev(),
+                Expanded(
+                  child: (seccion == 'terminal')
+                  ? Selector<TerminalProvider, List<String>>(
+                    selector: (_, provi) => provi.taskTerminal,
+                    builder: (_, tasks, __) => _resultados(tasks),
+                  )
+                  : const MyTerminalCode()
+                )
+              ],
+            ),
           ),
-          if(!_provW.terminalIsMini)
-            const Divider(color: Colors.grey, height: 1),
-          Expanded(
-            child: (seccion == 'terminal')
-            ? Selector<TerminalProvider, List<String>>(
-              selector: (_, provi) => provi.taskTerminal,
-              builder: (_, tasks, __) => _resultados(tasks),
-            )
-            : const MyTerminalCode()
-          )
-        ],
-      ),
+        ),
+        Positioned(
+          bottom: 0, right: 0,
+          child: Container(
+            width: 30, height: 25,
+            decoration: const BoxDecoration(
+              color: Color.fromARGB(255, 51, 51, 51),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(5)
+              )
+            ),
+            child: IconButton(
+              padding: const EdgeInsets.all(0),
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints(
+                maxHeight: 18
+              ),
+              icon: const Icon(Icons.delete_sweep_outlined, size: 18),
+              onPressed: () => _provR.taskTerminal = [],
+            ),
+          ),
+        )
+      ],
     );
   }
   
+  ///
+  Widget _conteoRev() {
+    
+    return Selector<ProcessProvider, bool>(
+      selector: (_, prov) => prov.isStopCronFiles,
+      builder: (context, isStop, child) {
+        
+        if(isStop){
+          const Divider(color: Colors.grey, height: 2);
+        }
+
+        return Selector<ProcessProvider, int>(
+          selector: (_, prov) => prov.timer,
+          builder: (ctx, tiempo, __) {
+
+            final prov = ctx.read<ProcessProvider>();
+            if(tiempo >= 96){
+              Future.microtask(() => prov.resetTimer());
+            }
+            final v = ((tiempo+3) / 100);
+            return LinearProgressIndicator(
+              value: v,
+              backgroundColor: Colors.black,
+              color: Colors.green,
+              minHeight: 2,
+            );
+          },
+        );
+      },
+    );
+  }
+
   ///
   Widget _resultados(List<String> tasks) {
 
@@ -87,24 +129,19 @@ class _MyTerminalState extends State<MyTerminal> {
       radius: const Radius.circular(3),
       trackVisibility: true,
       child: ListView.builder(
-        padding: EdgeInsets.only(
-          right: 8, left: 8,
-          top: (!_provW.terminalIsMini) ? 5 : 10
+        padding: const EdgeInsets.only(
+          right: 8, left: 8, top: 5
         ),
         controller: _scroll,
         itemCount: tasks.length,
-        itemBuilder: (_, index) => Selector<ProcessProvider, bool>(
-          selector: (_, prov) => prov.isProcessOnErr,
-          builder: (_, val, __) => _tileTask(tasks[index], val)
-        ),
+        itemBuilder: (_, index) => _tileTask(tasks[index])
       )
     );
   }
 
   ///
-  Widget _tileTask(String task, bool isProcessOnErr) {
+  Widget _tileTask(String task) {
 
-    const per = '[Er]';
     Color txtc = const Color.fromARGB(255, 255, 193, 7);
     
     if(task.startsWith('[CRON')) {
@@ -119,26 +156,40 @@ class _MyTerminalState extends State<MyTerminal> {
 
     if(task.startsWith('>')) {
       txtc = const Color.fromARGB(255, 164, 171, 177);
-      if(isProcessOnErr){
-        txtc = const Color.fromARGB(255, 5, 243, 152);
-        task = '$task $per';
-      }
     }
     
     if(task.startsWith('X')) {
       txtc = const Color.fromARGB(255, 228, 118, 110);
-      if(isProcessOnErr){
-        txtc = const Color.fromARGB(255, 255, 147, 139);
-        task = '$task $per';
-      }
     }
 
     if(task.startsWith('√')) {
-      txtc = const Color.fromARGB(255, 102, 189, 240);
-      if(isProcessOnErr){
-        txtc = const Color.fromARGB(255, 10, 140, 216);
-        task = '$task $per';
-      }
+      txtc = const Color.fromARGB(255, 15, 123, 247);
+    }
+
+    if(task.startsWith('<>')) {
+      txtc = const Color.fromARGB(255, 15, 123, 247);
+      return TextButton(
+        onPressed: () => _determinarFuncion(task),
+        style: ButtonStyle(
+          alignment: Alignment.centerLeft,
+          padding: MaterialStateProperty.all(
+            const EdgeInsets.all(0)
+          )
+        ),
+        child: Text(
+          task,
+          textScaleFactor: 1,
+          textAlign: TextAlign.left,
+          style: GoogleFonts.inconsolata(
+            textStyle: const TextStyle(
+              fontSize: 13,
+              color: Colors.yellow,
+              letterSpacing: 1.1,
+              fontWeight: FontWeight.w300
+            )
+          ),
+        )
+      );
     }
 
     return Padding(
@@ -152,11 +203,55 @@ class _MyTerminalState extends State<MyTerminal> {
             fontSize: 13,
             color: txtc,
             letterSpacing: 1.1,
-            fontWeight: FontWeight.normal
+            fontWeight: FontWeight.w300
           )
         ),
       )
     );
+  }
 
+  ///
+  void _determinarFuncion(String label) async {
+
+    if(label.contains('WhatsApp')) {
+      await _revisandoConectividad();
+    }
+    if(label.contains('[W]')) {
+      _provR.taskTerminal.clear();
+      await Future.delayed(const Duration(milliseconds: 250));
+      await _reconectandoWhats();
+    }
+  }
+
+  ///
+  Future<void> _reconectandoWhats() async {
+
+    _provR.addTask('Reconectando Sistema de Mensajería');
+    final connProv = context.read<BrowserProvider>();
+    final procProv = context.read<ProcessProvider>();
+    connProv.isOkCp = false;
+    procProv.systemIsOk = procProv.systemIsOk + 1;
+    return;
+  }
+
+  ///
+  Future<void> _revisandoConectividad() async {
+
+    _provR.addTask('Revisando Conectividad');
+    final connProv = context.read<BrowserProvider>();
+    final procProv = context.read<ProcessProvider>();
+    String check = await BrowserConn.checarConectividad(
+      connProv.browser, connProv.pagewa, connProv.titleCurrent
+    );
+    if(check.isEmpty) {
+      _provR.addOk('Conexión Sistema Exitoso');
+      _provR.addTask('Inicializando Monitoreo');
+      connProv.isOkCp = true;
+      procProv.systemIsOk = 1000;
+    }else{
+      _provR.addWar(check);
+      _provR.addAcc('Revisa de nuevo WhatsApp');
+    }
+    return;
   }
 }

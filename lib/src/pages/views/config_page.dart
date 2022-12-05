@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 
-import '../layout_page.dart';
 import '../../config/sng_manager.dart';
 import '../../providers/socket_conn.dart';
 import '../../widgets/titulo_seccion.dart';
@@ -33,21 +32,10 @@ class _ConfigPageState extends State<ConfigPage> {
       _sock = context.read<SocketConn>();
     }
 
-    return LayoutPage(
-      child: Container(
-        width: appWindow.size.width,
-        height: appWindow.size.height,
-        padding: const EdgeInsets.all(10),
-        child:  _body()
-      ),
-    );
-  }
-
-  ///
-  Widget _body() {
-
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      width: appWindow.size.width,
+      height: appWindow.size.height,
+      padding: const EdgeInsets.all(10),
       child: Column(
         mainAxisSize: MainAxisSize.max,
         children: [

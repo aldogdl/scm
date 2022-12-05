@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:puppeteer/protocol/target.dart';
 import 'package:puppeteer/puppeteer.dart';
 
-import 'libs/vars_bsk_contact.dart';
+import 'libs/lib_bsk_ctac.dart' show taskContact, TaskContac;
 import 'vars_puppe.dart';
 import '../get_paths.dart';
 import '../../vars/globals.dart';
@@ -59,7 +59,8 @@ class BrowserConn {
     );
   }
 
-  ///
+  /// Tomamos una pagina por su id, este tomado desde los
+  /// metadatos que se entregan por medio de la Api de Chrome
   static Future<Page?> getPageByIdTarget(Browser browser, String id) async {
 
     Target? tar = browser.targetById(TargetID(id));
@@ -68,11 +69,11 @@ class BrowserConn {
         return await tar.page;
       }
     }
-    return await getPageWhatsapp(browser);
+    return await fetchPageWhatsApp(browser);
   }
 
-  ///
-  static Future<Page?> getPageWhatsapp(Browser browser) async {
+  /// Buscamos entre todas las pestañas abiertas a WhatsApp
+  static Future<Page?> fetchPageWhatsApp(Browser browser) async {
 
     List<Page> paginas = await browser.pages;
     if(paginas.isNotEmpty) {
@@ -135,6 +136,19 @@ class BrowserConn {
       pathRoot.createSync();
     }
     return pathRoot.path;
+  }
+
+  /// Revisamos si existe un browser descargado en la carpeta de trabajo
+  static bool hasWrowserDownloader() {
+
+    final String sep = GetPaths.getSep();
+    final path = _getRoot();
+    final String sub  = 'Default$sep${"IndexedDB"}';
+    Directory pathPupp = Directory('$path$sep$sub');
+    if(!pathPupp.existsSync()) {
+      return true;
+    }
+    return false;
   }
 
   ///

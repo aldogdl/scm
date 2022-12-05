@@ -5,9 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:glass_kit/glass_kit.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
-import 'package:scm/src/pages/portada_page.dart';
 
-import 'layout_page.dart';
 import '../services/get_paths.dart';
 import '../config/sng_manager.dart';
 import '../providers/socket_conn.dart';
@@ -71,11 +69,11 @@ class _LoginPageState extends State<LoginPage> {
       _sock.setMsgWithoutNotified('Autentícate por favor.');
     }
 
-    return LayoutPage(
-      child: Container(
+    return Scaffold(
+      body: Container(
         width: MediaQuery.of(context).size.width,
         height: appWindow.size.height,
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(20),
         child: Stack(
           children: [
             _body(),
@@ -89,7 +87,7 @@ class _LoginPageState extends State<LoginPage> {
               )
           ],
         )
-      )
+      ),
     );
   }
 
@@ -107,14 +105,25 @@ class _LoginPageState extends State<LoginPage> {
             mainAxisSize: MainAxisSize.max,
             children: [
               const SizedBox(height: 30),
-              Icon(Icons.account_circle_rounded, size: 70, color: Colors.blue.withOpacity(0.3)),
-              Texto(
-                txt: context.watch<SocketConn>().msgErr,
-                txtC: Colors.blue, isCenter: true,
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 10),
+                child: Image(
+                  image: AssetImage('assets/logo_1024.png'),
+                ),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 20),
               _formularioLogin(),
               const ExcludeFocus(child: CheckBoxConnection()),
+              const SizedBox(height: 10),
+              Selector<SocketConn, String>(
+                selector: (_, prov) => prov.msgErr,
+                builder: (_, msgErr, __) {
+                  return Texto(
+                    txt: msgErr,
+                    txtC: Colors.blue, isCenter: true,
+                  );
+                },
+              ),
               const SizedBox(height: 10),
               _btnLogin(),
               const Spacer(),
@@ -335,6 +344,10 @@ class _LoginPageState extends State<LoginPage> {
               if (_globals.ipHarbi.isEmpty) {
                 _sock.msgErr = 'Identifícate por favor';
               }
+              if(mounted) {
+                _initWidget(null);
+                setState(() {});
+              }
             },
             iconSize: 18,
             color: Colors.white,
@@ -347,30 +360,9 @@ class _LoginPageState extends State<LoginPage> {
   ///
   Future<void> _initWidget(_) async {
 
-    _pass.text = '';
-    // try {
-    //   await _sock.getNameRed();
-    // } catch (e) {
-    //   showDialog(
-    //     context: context,
-    //     builder: (_) => const SimpleDialog(
-    //       insetPadding: EdgeInsets.all(20),
-    //       alignment: Alignment.center,
-    //       children: [
-    //         Texto(
-    //           txt: 'Por favor, es necesario que estés conectado '
-    //           'a algúna RED por medio de Cable o WiFi.\nDespués '
-    //           'será necesario que reinicies el programa.',
-    //           isCenter: true,
-    //         )
-    //       ],
-    //     )
-    //   );
-    //   return;
-    // }
-
     _absorbing = false;
     _pass.text = '';
+    
     await _checkRedLan();
     final uss = await _getUserFromFile();
     List<String> lstCurcs = [];
@@ -385,19 +377,27 @@ class _LoginPageState extends State<LoginPage> {
 
     _defaultUser = items.first;
     _defaultCurc = (lstCurcs.isNotEmpty) ? lstCurcs.first : '';
-    Future.microtask(() => _users.value = uss);
+    Future.microtask(() {
+      if(mounted) {
+        _users.value = uss;
+      }
+    });
   }
 
   ///
   Future<void> _checkRedLan() async {
 
-    _sock.msgErr = await _sock.getIpToHarbiFromServer();
+    if(_globals.env == 'dev') {
+      _sock.msgErr = await _sock.getIpToHarbiFromLocal();
+    }else{
+      _sock.msgErr = await _sock.getIpToHarbiFromServer();
+    }
     if(!_sock.msgErr.startsWith('ERROR')) {
       _sock.msgErr = 'AUTENTÍCATE POR FAVOR';
     }
 
     Future.delayed(const Duration(microseconds: 300), (){
-      setState(() {});
+      if(mounted) { setState(() {}); }
     });
   }
 
@@ -405,7 +405,6 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _autenticar() async {
 
     if (_frmKey.currentState!.validate()) {
-      final nav = Navigator.of(context);
 
       if(_curc.text.isEmpty) {
         _curc.text = _defaultCurc;
@@ -443,11 +442,6 @@ class _LoginPageState extends State<LoginPage> {
         if(_sock.idConn != 0) {
           await _sock.makeRegistroUserToHarbi();
           _sock.isLoged = true;
-          nav.pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => const PortadaPage()
-            )
-          );
         }
       });
     }

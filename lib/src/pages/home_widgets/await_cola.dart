@@ -10,7 +10,6 @@ import '../../services/get_content_files.dart';
 import '../../vars/scroll_config.dart';
 import '../../widgets/indicador_cola.dart';
 import '../../widgets/tile_await_camp.dart';
-import '../../widgets/sin_data.dart';
 
 class AwaitCola extends StatefulWidget {
 
@@ -23,37 +22,54 @@ class AwaitCola extends StatefulWidget {
 class _AwaitColaState extends State<AwaitCola> {
 
   final ScrollController _ctrScrollAwait = ScrollController();
-  
+  final _curcsNoSend = ValueNotifier<int>(0);
+  final _repintLst = ValueNotifier<int>(-1);
+
   late ProcessProvider _proc;
-  late Future<void> _getAwait;
   bool _isInit = false;
   List<ScmEntity> _lstAwait = [];
   int _cantLast = 0;
-
-  @override
-  void initState() {
-    _getAwait = _getReceptores();
-    super.initState();
-  }
-
+  
   @override
   void dispose() {
     _ctrScrollAwait.dispose();
+    _curcsNoSend.dispose();
+    _repintLst.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
 
-    return FutureBuilder(
-      future: _getAwait,
-      builder: (_, AsyncSnapshot snap) {
-        
-        if(snap.connectionState == ConnectionState.done) {
-          if(_lstAwait.isNotEmpty) { return _body(); }
-        }
-        return _sinData();
-      }
+    if(!_isInit) {
+      _isInit = true;
+      _proc = context.read<ProcessProvider>();
+      _proc.setTituloColaBarr = 'Cargando...';
+    }
+    
+    return Selector<ProcessProvider, ScmEntity?>(
+      selector: (_, prov) => prov.receiverCurrent, 
+      builder: (_, recCur, child) {
+
+        if(_proc.currentFileProcess.isEmpty) { return child!; }
+
+        _hidratarReceptores();
+        return ValueListenableBuilder(
+          valueListenable: _repintLst,
+          builder: (_, repint, __) {
+            if(_lstAwait.isEmpty){ return child!; }
+            return _body();
+          },
+        );
+        // return FutureBuilder(
+        //   future: _hidratarReceptores(),
+        //   builder: (_, AsyncSnapshot snap) {
+            
+        //     return (_lstAwait.isNotEmpty) ? _body() : _sinData();
+        //   }
+        // );
+      },
+      child: _sinData(),
     );
   }
 
@@ -82,13 +98,7 @@ class _AwaitColaState extends State<AwaitCola> {
   }
 
   ///
-  Widget _sinData() {
-
-    return const SinData(
-      msg: '', main: 'nada en Cola', isDark: false,
-      withTit: false
-    );
-  }
+  Widget _sinData() => const SizedBox();
 
   ///
   Widget _indicador() {
@@ -100,7 +110,6 @@ class _AwaitColaState extends State<AwaitCola> {
         String onOff = 'on';
         if(trigger.noSend.length != _cantLast) {
           onOff = 'off';
-          _recuperarAwaitAgaing();
         }
 
         return IndicadorCola(
@@ -115,6 +124,8 @@ class _AwaitColaState extends State<AwaitCola> {
   ///
   Widget _buildLst() {
 
+    const child = SizedBox();
+
     return ScrollConfiguration(
       behavior: MyCustomScrollBehavior(),
       child: Scrollbar(
@@ -128,8 +139,10 @@ class _AwaitColaState extends State<AwaitCola> {
           itemCount: _lstAwait.length,
           itemBuilder: (_, int i) {
 
-            if(_proc.receiverCurrent.idReceiver == _lstAwait[i].idReceiver) {
-              return const SizedBox();
+            if(_proc.receiverCurrent != null) {
+              if(_proc.receiverCurrent!.idReceiver == _lstAwait[i].idReceiver) {
+                return child;
+              }
             }
             
             return TileAwaitCamp(
@@ -146,21 +159,37 @@ class _AwaitColaState extends State<AwaitCola> {
   ///
   Widget _childCheck(ScmEntity receiver) {
 
-    return Checkbox(
-      checkColor: Colors.white.withOpacity(0.5),
-      visualDensity: VisualDensity.compact,
-      side: const BorderSide(color: Colors.grey),
-      fillColor: MaterialStateProperty.all(
-        Colors.white.withOpacity(0.1)
-      ),
-      key: Key('${receiver.idReceiver}'),
-      value: !receiver.forceNotSend,
-      onChanged: (val) {
-        val = (val == null) ? false : val;
-        val = !val;
-        setState(() {
-          receiver.forceNotSend = val ?? false;
-        });
+    return ValueListenableBuilder<int>(
+      valueListenable: _curcsNoSend,
+      builder: (_, val, __) {
+
+        return Checkbox(
+          checkColor: Colors.white.withOpacity(0.5),
+          visualDensity: VisualDensity.compact,
+          side: const BorderSide(color: Colors.grey),
+          fillColor: MaterialStateProperty.all(
+            Colors.white.withOpacity(0.1)
+          ),
+          key: Key('${receiver.idReceiver}'),
+          value: !_proc.curcsNoSend.contains(
+            receiver.curc
+          ),
+          onChanged: (val) {
+
+            val = (val == null) ? false : val;
+            if(val) {
+              // Esta seleccionado el check, se envia
+              _proc.curcsNoSend.remove(receiver.curc);
+              _curcsNoSend.value = _proc.curcsNoSend.length;
+            }else{
+              if(!_proc.curcsNoSend.contains(receiver.curc)) {
+                _proc.curcsNoSend.add(receiver.curc);
+              }
+              _curcsNoSend.value = _proc.curcsNoSend.length;
+            }
+          }
+        );
+
       }
     );
   }
@@ -168,44 +197,34 @@ class _AwaitColaState extends State<AwaitCola> {
 
   // ----------------CONTROLADOR--------------------
 
-
   /// Recuperamos los mensajes de la campaña actual
-  Future<void> _getReceptores() async {
+  Future<void> _hidratarReceptores() async {
 
-    if(!_isInit) {
-      _isInit = true;
-      _proc = context.read<ProcessProvider>();
-      _proc.setTituloColaBarr = 'Cargando...';
-    }
-    _lstAwait = [];
-
-    await _getMap();
-  }
-
-  /// Recuperamos los mensajes de la campaña actual
-  Future<void>  _recuperarAwaitAgaing() async {
-    await _getMap();
-    if(mounted) {
-      setState(() { });
-    }
-  }
-
-  /// Recuperamos los mensajes de la campaña actual
-  Future<void>  _getMap() async {
-
-    final msgs = List<String>.from(_proc.enProceso.noSend);
+    List<ScmEntity> newLstAwait = [];
+    final msgs = _proc.enProceso.noSend;
     if(msgs.isNotEmpty) {
 
-      _lstAwait = await GetContentFile.getAllReceiverOfCampaings(
-        filesRecivers: msgs, fileNameCurrent: _proc.currentFileReceiver
-      );
+      final path = _proc.enProceso.pathReceivers;
+
+      for (var i = 0; i < msgs.length; i++) {
+        
+        if(msgs[i] != _proc.currentFileReceiver) {
+          final recep = await GetContentFile.getMsgToMap('$path${msgs[i]}');
+          newLstAwait.add(ScmEntity()..fromProvider(recep));
+        }
+      }
       
       _cantLast = msgs.length;
-
       Future.microtask((){
-        _proc.tituloColaBarr = '${_lstAwait.length} msg(s). Campaña Actual ID.: ${_proc.enProceso.id}';
+        _lstAwait = List<ScmEntity>.from(newLstAwait);
+        _proc.tituloColaBarr = '${_proc.enProceso.noSend.length} Receptore(s).';
+        _repintLst.value = _proc.enProceso.noSend.length;
+        newLstAwait = [];
       });
+    }else{
+      _lstAwait = [];
+      _repintLst.value = -1;
     }
   }
-  
+
 }

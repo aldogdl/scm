@@ -30,7 +30,6 @@ class PuppeRepository {
   Future<List<Map<String, dynamic>>> getListTargets() async {
 
     try {
-      
       http.Response resp = await http.get(Uri.http('$ppBase:$ppPort', wsList));
       if(resp.statusCode == 200) {
         return List<Map<String, dynamic>>.from(json.decode(resp.body));

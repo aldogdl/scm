@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
+import 'package:provider/provider.dart';
+import 'package:scm/src/widgets/my_terminal.dart';
 
+import '../providers/socket_conn.dart';
 import 'layout_page.dart';
 import 'home_widgets/tray_cola.dart';
 import 'home_widgets/await_cola.dart';
-import 'sender/sender_view.dart';
+import 'home_widgets/sender_view.dart';
 
 class HomePage extends StatelessWidget {
   
@@ -37,15 +40,17 @@ class HomePage extends StatelessWidget {
             ),
             Expanded(
               child: Column(
-                children: const [
-                  Expanded(
+                children: [
+                  const Expanded(
                     flex: 1,
                     child: AwaitCola(),
                   ),
-                  Expanded(
+                  const Expanded(
                     flex: 1,
                     child: TrayCola(),
                   ),
+                  if(context.read<SocketConn>().isLoged)
+                    const MyTerminal()
                 ],
               )
             )

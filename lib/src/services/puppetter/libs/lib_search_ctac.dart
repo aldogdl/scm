@@ -3,11 +3,36 @@ import 'package:puppeteer/puppeteer.dart' as pupp show
 ElementHandle;
 
 import 'task_shared.dart';
-import 'vars_search_contact.dart';
 import '../providers/browser_provider.dart';
 import '../vars_puppe.dart';
 import '../../../providers/process_provider.dart';
 import '../../../providers/terminal_provider.dart';
+
+///
+enum FindCtac {
+  html, searchCtac, checkTitulo
+}
+
+Map<FindCtac, Map<String, String>> findCtac = {
+  FindCtac.html: {
+    'chatLstNormal': 'div.zoWT4>span>span.matched-text',
+    'chatLstGroup': 'div.zoWT4>span',
+    'chatRoomTitulo': '#main>header>div._24-Ff>div._2rlF7>div>span',
+  },
+  FindCtac.searchCtac: {
+    'task': 'Buscando el Contacto en la Lista',
+  },
+  FindCtac.checkTitulo: {
+    'task': 'Corroborando Chat',
+  },
+};
+
+///
+List<String> errsSearch = [
+  'ERROR<contac>, No se encontró entre los resultados el CHAT > ',
+  'ERROR<retry>, No se esta en el mismo dentro del Room del Chat Solicitado.',
+  'ERROR<retry>, No se alcanzó el TÍTULO DEL CHAT para poder corroborar su veracidad.'
+];
 
 class LibSeachCtac {
 
@@ -36,12 +61,11 @@ class LibSeachCtac {
     nameInterno = pprov.nombreProcess;
 
     tituloSecc(console, 'searchCtac >> $curcInterno');
-    await _sleep(time: 500);
+    await _sleep(time: 350);
 
     _procMaster = FindCtac.searchCtac;
 
     yield task;
-    await _sleep();
     res = await _searchCtac();
     if(res != 'ok') {
       yield _ae;
@@ -52,7 +76,6 @@ class LibSeachCtac {
 
     _procMaster = FindCtac.checkTitulo;
     yield task;
-    await _sleep();
     res = await _checkTitulo();
     if(res != 'ok') {
       yield _ae;
@@ -74,7 +97,6 @@ class LibSeachCtac {
   ///
   Future<String> _getErr(String err, String paso) async {
 
-    await _sleep(time: 500);
     return await anaErr(
       pprov, console, err, 'searchCtac', paso
     );
@@ -99,7 +121,12 @@ class LibSeachCtac {
       chats = await wprov.pagewa!.$$(select);
     }
 
-    if(chats.isEmpty) { return '${errsSearch[0]}$curcInterno'; }
+    if(chats.isEmpty) {
+      if(!pprov.curcsNoSend.contains(curcInterno)) {
+        pprov.curcsNoSend.add(curcInterno);
+      }
+      return '${errsSearch[0]}$curcInterno';
+    }
 
     int rota = (chats.length < 5) ? chats.length : 5;
 
@@ -115,7 +142,10 @@ class LibSeachCtac {
         }
       }
     }
-
+    
+    if(!pprov.curcsNoSend.contains(curcInterno)) {
+      pprov.curcsNoSend.add(curcInterno);
+    }
     return '${errsSearch[0]}$curcInterno';
   }
 

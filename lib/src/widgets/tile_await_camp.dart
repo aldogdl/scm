@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 import '../entity/scm_entity.dart';
-import '../providers/process_provider.dart';
 import 'my_tool_tip.dart';
 import 'texto.dart';
 
@@ -20,6 +18,9 @@ class TileAwaitCamp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    String curc = receiver.receiver.curc;
+    curc = curc.replaceAll('anet', '').toUpperCase();
 
     return Column(
       children: [
@@ -41,13 +42,13 @@ class TileAwaitCamp extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             MyToolTip(
-              msg: '-> ${receiver.nombre}',
+              msg: '[AVO] -> ${receiver.rName}',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Texto(
                     txt: receiver.nombre,
-                    txtC: const Color.fromARGB(255, 224, 224, 224)
+                    txtC: const Color.fromARGB(255, 177, 177, 177)
                   ),
                   Texto(
                     txt: receiver.receiver.empresa, sz: 11,
@@ -57,19 +58,15 @@ class TileAwaitCamp extends StatelessWidget {
               )
             ),
             const Spacer(),
-            Selector<ProcessProvider, bool>(
-              selector: (_, prov) => prov.isPause,
-              builder: (_, val, __) {
-                return Texto(
-                  txt: (val) ? 'En Pausa' : 'En cola', sz: 12,
-                  txtC: const Color.fromARGB(255, 145, 255, 0)
-                );
-              },
-            ),
+            Texto(
+              txt: curc, sz: 12,
+              txtC: const Color.fromARGB(255, 145, 255, 0)
+            )
           ],
         ),
         Divider(color: Colors.grey.withOpacity(0.5),)
       ],
     );
   }
+
 }

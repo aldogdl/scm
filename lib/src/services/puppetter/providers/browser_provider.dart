@@ -6,7 +6,8 @@ class BrowserProvider extends ChangeNotifier {
   Browser? browser;
   Page? pagewa;
   String targetId   = '';
-
+  bool isChecking = false;
+  
   ///
   String _titleCurrent = '';
   String get titleCurrent => _titleCurrent;
@@ -17,12 +18,13 @@ class BrowserProvider extends ChangeNotifier {
 
   ///
   bool _isOk = false;
-  bool get isOk => _isOk;
-  set isOk(bool isOkv) {
+  bool get isOkCp => _isOk;
+  set isOkCp(bool isOkv) {
     _isOk =  isOkv;
     notifyListeners();
   }
 
+  ///
   void cerrarSesion() {
     _isOk = false;
     browser = null;

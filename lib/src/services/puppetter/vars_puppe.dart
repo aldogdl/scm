@@ -17,7 +17,3 @@ const int intentos = 3;
 const esperarPorHtml = Duration(milliseconds: 5000);
 
 enum ErrorType {retry, contac, drash, stop}
-enum CmdType {
-  retryAll, retryThis, contactanos, papelera,
-  notifRemite, stopAlert
-}

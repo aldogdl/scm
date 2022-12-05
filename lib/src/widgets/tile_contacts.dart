@@ -42,21 +42,36 @@ class TileContacts extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Texto(
-            txt: title,
-            txtC: colorSubT,
-            isBold: (isDark) ? true : false
+          Row(
+            children: [
+              Texto(
+                txt: title,
+                txtC: colorSubT,
+                isBold: (isDark) ? true : false
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 5, vertical: 2
+                ),
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 46, 47, 49),
+                  borderRadius: BorderRadius.circular(8)
+                ),
+                child: Texto(
+                  txt: '$idTarget', txtC: Colors.white, sz: 10,
+                ),
+              )
+            ],
           ),
-          const Divider(height: 6),
+          const Divider(height: 12),
           if(target.isNotEmpty)
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Texto(txt: 'Tipo: ${target.toUpperCase()}', sz: 12, txtC: const Color.fromARGB(255, 155, 154, 154)),
-                const SizedBox(width: 8),
-                Texto(txt: 'Id: $idTarget', sz: 12, txtC: const Color.fromARGB(255, 155, 154, 154) ),
-                const SizedBox(width: 8),
-                Texto(txt: 'Campaña: $idCamp', sz: 13, txtC: const Color.fromARGB(255, 22, 199, 28) ),
+                Texto(txt: 'Campaña: $idCamp', sz: 13, txtC: const Color.fromARGB(255, 170, 170, 170) ),
+                const Spacer(),
+                Texto(txt: 'Tipo: ${target.toUpperCase()}', sz: 12, txtC: const Color.fromARGB(255, 170, 170, 170)),
               ]
             ),
           Texto(txt: nombre,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:glass_kit/glass_kit.dart';
-import 'package:provider/provider.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 
 import 'views/msg_current.dart';
@@ -10,10 +9,7 @@ import 'views/sended_page.dart';
 import 'views/papelera_page.dart';
 import 'views/target_page.dart';
 import '../config/sng_manager.dart';
-import '../providers/socket_conn.dart';
 import '../vars/globals.dart';
-import '../widgets/status_barr.dart';
-import '../widgets/my_terminal.dart';
 import '../widgets/tools_barr.dart';
 
 final Globals _globals = getSngOf<Globals>();
@@ -46,10 +42,6 @@ class LayoutPage extends StatelessWidget {
                 ]
               ),
             ),
-            StatusBarr(
-              bgOff: _globals.sttBarrColorOff,
-              bgOn: _globals.sttBarrColorOn,
-            )
           ],
         )
       )
@@ -73,7 +65,24 @@ class LeftSide extends StatelessWidget {
         color: _globals.sidebarColor,
         child: Column(
           children: [
-            WindowTitleBarBox(child: MoveWindow()),
+            WindowTitleBarBox(
+              child: MoveWindow(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Text(
+                      'SCM ',
+                      textScaleFactor: 1,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            ),
             Expanded(
               child: ToolsBarr(
                 onTap: (String view) => _verModal(context, view) 
@@ -147,6 +156,9 @@ class RightSide extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
+    String modo = (_globals.env == 'dev')
+      ? _globals.env.toUpperCase() : '';
+
     return Expanded(
       child: Container(
         decoration: BoxDecoration(
@@ -167,15 +179,38 @@ class RightSide extends StatelessWidget {
           children: [
             WindowTitleBarBox(
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Expanded(child: MoveWindow()),
+                  Expanded(child: MoveWindow(
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 10),
+                        Text(
+                          '$modo ',
+                          textScaleFactor: 1,
+                          style: const TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11
+                          ),
+                        ),
+                        Text(
+                          '| Ver.: ${_globals.ver}',
+                          textScaleFactor: 1,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w300,
+                            fontSize: 11
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
                   const WindowButtons()
                 ]
               )
             ),
             Expanded(child: child),
-            if(context.read<SocketConn>().isLoged)
-              const MyTerminal()
           ]
         )
       )

@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:provider/provider.dart';
+import 'package:scm/src/widgets/my_tool_tip.dart';
+import 'package:scm/src/widgets/texto.dart';
 
 import '../../entity/proceso_entity.dart';
 import '../../services/get_content_files.dart';
 import '../../providers/process_provider.dart';
-import '../../services/scm/scm_paths.dart' show FoldStt;
+import '../../services/scm/scm_paths.dart' show FoldStt, ScmPaths;
 import '../../widgets/indicador_cola.dart';
 import '../../widgets/tile_tray_camp.dart';
 import '../../vars/scroll_config.dart';
 import '../../widgets/sin_data.dart';
 
 class TrayCola extends StatefulWidget {
+
   const TrayCola({Key? key}) : super(key: key);
 
   @override
@@ -24,14 +27,9 @@ class _TrayColaState extends State<TrayCola> {
   late final ProcessProvider _proc;
 
   bool _isInit = false;
+  bool isLock = false;
   List<Map<String, dynamic>> _lstCamps = [];
-  late Future _getTray;
-
-  @override
-  void initState() {
-    _getTray = _recuperarTray();
-    super.initState();
-  }
+  Map<String, dynamic> _campCurr = {};
 
   @override
   void dispose() {
@@ -42,18 +40,31 @@ class _TrayColaState extends State<TrayCola> {
   @override
   Widget build(BuildContext context) {
 
-    return FutureBuilder(
-      future: _getTray,
-      builder: (_, AsyncSnapshot snap) {
+    if(!_isInit) {
+      _isInit = true;
+      _proc = context.read<ProcessProvider>();
+    }
 
-        if(snap.connectionState == ConnectionState.done) {
-          if(_lstCamps.isNotEmpty) {
-            return _buildLstCampaings();
-          }
+    return Selector<ProcessProvider, int>(
+      selector: (_, prov) => prov.refreshTray,
+      builder: (_, val, child) {
+
+        if(val <= 0 && _proc.enProceso.id == 0) {
+          return child!;
         }
 
-        return _sinData();
-      }
+        return FutureBuilder(
+          future: _recuperarTray(),
+          builder: (_, AsyncSnapshot snap) {
+            
+            if(snap.connectionState == ConnectionState.done) {
+              return _buildLstCampaings();
+            }
+            return child!;
+          }
+        );
+      },
+      child: _sinData(),
     );
   }
 
@@ -74,12 +85,16 @@ class _TrayColaState extends State<TrayCola> {
       constraints: BoxConstraints.expand(
         width: appWindow.size.width
       ),
-      color: const Color.fromARGB(255, 97, 90, 90),
+      color: const Color.fromARGB(255, 20, 20, 20),
       child: Column(
         children: [
           _indicador(),
+          TileTrayCamp(
+            idCurrent: _proc.enProceso.id,
+            dataTray: _campCurr
+          ),
           Expanded(
-            child: _lista(),
+            child: _listaDeTrayEnCola(),
           )
         ],
       )
@@ -87,7 +102,7 @@ class _TrayColaState extends State<TrayCola> {
   }
 
   ///
-  Widget _lista() {
+  Widget _listaDeTrayEnCola() {
     
     return ScrollConfiguration(
       behavior: MyCustomScrollBehavior(),
@@ -100,13 +115,7 @@ class _TrayColaState extends State<TrayCola> {
           padding: const EdgeInsets.only(right: 15, top: 5),
           controller: _ctrScrollMain,
           itemCount: _lstCamps.length,
-          itemBuilder: (_, int index) {
-
-            return TileTrayCamp(
-              idCurrent: _proc.enProceso.id,
-              dataTray: _lstCamps[index]
-            );
-          }
+          itemBuilder: (_, int index) => _tileTrayEnCola(index)
         )
       )
     );
@@ -122,7 +131,7 @@ class _TrayColaState extends State<TrayCola> {
         String onOff = 'off';
         if(trigger != _lstCamps.length) {
           onOff = 'on';
-          _recuperarTrayAgaing();
+          //_recuperarTrayAgaing();
         }
 
         return IndicadorCola(
@@ -135,77 +144,84 @@ class _TrayColaState extends State<TrayCola> {
   }
 
   ///
+  Widget _tileTrayEnCola(int index) {
+
+    final target = _lstCamps[index]['target'];
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            const SizedBox(width: 3),
+            Texto(
+              txt: '${index+1}.-',
+              txtC: const Color.fromARGB(255, 63, 132, 223),
+            ),
+            const SizedBox(width: 5),
+            Texto(
+              txt: '${_lstCamps[index][target]['modelo']} ${_lstCamps[index][target]['anio']}',
+              txtC: const Color.fromARGB(255, 54, 100, 56), isBold: true,
+            ),
+            const Spacer(),
+            Texto(
+              txt: 'Ord.: ${_lstCamps[index][target]['id']}',
+              sz: 12, isBold: true,
+            ),
+          ],
+        ),
+        Row(
+          children: [
+            MyToolTip(
+              msg: 'AVO: ${_lstCamps[index]['remiter']['nombre']}',
+              child: const Icon(
+                Icons.account_circle, size: 15, color: Color.fromARGB(255, 129, 129, 129),
+              )
+            ),
+            const SizedBox(width: 8),
+            Texto(
+              txt: '${_lstCamps[index]['emiter']['nombre']}',
+              txtC: const Color.fromARGB(255, 70, 82, 121),
+              sz: 11, isBold: true,
+            ),
+            const Spacer(),
+            Texto(
+              txt: 'de: ${_lstCamps[index]['emiter']['empresa']}',
+              txtC: const Color.fromARGB(255, 90, 90, 90),
+              sz: 12, isBold: true,
+            ),
+          ],
+        ),
+        const Divider(height: 10)
+      ],
+    );
+  }
+  
+  /// Recuperamos todas las campañas que estan en tray
   Future<void> _recuperarTray() async {
 
-    if(!_isInit) {
-      _isInit = true;
-      _proc = context.read<ProcessProvider>();
-    }
+    if(isLock){ return; }
+    isLock = true;
+
+    _lstCamps = [];
+    _campCurr = {};
+    List<String> files = GetContentFile.getFilesTraySortPriority();
     
-    if(_lstCamps.length != _proc.enTray) {
-      _lstCamps = await GetContentFile.getAllCampaingsWithDataMini();
-    }
-  }
-
-  ///
-  Future<void> _recuperarTrayAgaing() async {
-
-    List<Map<String, dynamic>> lstCamps = [];
-    final list = GetContentFile.getFilesTraySortPriority();
-    final files = List<String>.from(list['lst']);
-    
-    if(files.isNotEmpty){
-      Map<String, dynamic> current = {};
-
+    if(files.isNotEmpty) {
       for (var i = 0; i < files.length; i++) {
-        
-        final proc = ProcesoEntity();
-        String filename = files[i];
-        bool isCurrent = false;
-
-        if(list.containsKey('currentWithoutWork')) {
-          if(list['currentWithoutWork'].isNotEmpty) {
-            if(list['currentWithoutWork'] == files[i]) {
-              if(list.containsKey('currentWithWork')) {
-                filename = list['currentWithWork'];
-              }else{
-                filename = files[i];
-              }
-              isCurrent = true;
-            }
-          }
-        }
-
-        proc.fromJson(
-          await GetContentFile.getContentByFileAndFolder(
-            fileName: filename, folder: FoldStt.tray
-          )
+        final procc = ProcesoEntity();
+        _campCurr = await GetContentFile.getContentByFileAndFolder(
+          fileName: files[i], folder: FoldStt.tray
         );
-
-        Map<String, dynamic> json = proc.toJsonMini();
-        
-        json['isPrio'] = (i == 0) ? true : false;
-        json['isCurrent'] = isCurrent;
-
-        if(!json['isCurrent']) {
-          lstCamps.add(json);
+        procc.fromJson(_campCurr);
+        if(files[i].startsWith(ScmPaths.prefixFldWrk)) {
+          _campCurr = procc.toJsonMini();
         }else{
-          current = json;
+          _lstCamps.add(procc.toJsonMini());
         }
       }
-
-      if(current.isNotEmpty) {
-        lstCamps.insert(0, current);
-      }
-      current = {};
     }
-
-    _lstCamps = List<Map<String, dynamic>>.from(lstCamps);
-    if(mounted) {
-      if(lstCamps.isNotEmpty){
-        setState(() {});
-      }
-    }
-    lstCamps = [];
+    files = [];
+    isLock = false;
   }
+
 }

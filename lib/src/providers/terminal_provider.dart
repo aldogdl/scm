@@ -4,20 +4,16 @@ class TerminalProvider extends ChangeNotifier {
 
   final int _maxWid = 32;
 
-  bool _terminalIsMini = true;
-  bool get terminalIsMini => _terminalIsMini;
-  set terminalIsMini(bool isMini) {
-    _terminalIsMini = isMini;
-    notifyListeners();
-  }
-  
   /// Usado para ver cuantas revisiones ha hecho al servidor remoto
   List<String> _taskTerminal = [];
   List<String> get taskTerminal => _taskTerminal;
   set taskTerminal(List<String> tasks){
     _taskTerminal = tasks;
-    notifyListeners();
+    Future.microtask((){
+      notifyListeners();
+    });
   }
+  
   ///
   void _inT(String task) {
     var tmp = List<String>.from(_taskTerminal);
@@ -34,6 +30,7 @@ class TerminalProvider extends ChangeNotifier {
   void addOk(String task)  => _inT('√ $task');
   void addErr(String task) => _inT('X $task');
   void addWar(String task) => _inT('! $task');
+  void addAcc(String task) => _inT('<> $task');
 
   ///
   void addNewReceiver(String curc) {
@@ -48,7 +45,6 @@ class TerminalProvider extends ChangeNotifier {
 
   void clean() {
     _taskTerminal  = [];
-    _terminalIsMini = true;
   }
 
 }

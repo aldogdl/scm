@@ -1,9 +1,12 @@
 import 'package:path/path.dart' as p;
 import '../../config/sng_manager.dart';
 import '../../vars/globals.dart';
+
+
 enum FoldStt {
   wait, tray, drash, sended, hist, werr
 }
+
 class ScmPaths {
 
   static final Globals _globals = getSngOf<Globals>();
@@ -36,8 +39,9 @@ class ScmPaths {
 
   /// isPath indica si el archivo es una ruta absoluta
   /// de lo contrario solo es el nombre del archivo
-  static String setPrefixWorking(String path, {bool isPath = true}) {
-
+  static String setPrefixWorking
+    (String path, {bool isPath = true, getFull = false})
+  {
     String filename = path;
     String base = '';
     final s = getSep();
@@ -56,6 +60,9 @@ class ScmPaths {
       if(base.isNotEmpty) {
         filename = '$base$s$filename';
       }
+    }
+    if(getFull) {
+      return '${base.trim()}${filename.trim()}'.toLowerCase();
     }
     return filename.toLowerCase().trim();
   }
@@ -81,7 +88,6 @@ class ScmPaths {
 
   ///
   static String extractNameFile(String path) {
-    List<String> uriP = path.split(getSep()).toList();
-    return uriP.removeLast();
+    return path.split(getSep()).toList().last;
   }
 }

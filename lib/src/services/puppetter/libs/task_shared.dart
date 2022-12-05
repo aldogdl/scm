@@ -1,10 +1,8 @@
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:puppeteer/puppeteer.dart' as pupp show
 ElementHandle, Key, Page;
 
-import '../vars_puppe.dart' show ErrorType,
-intentos, CmdType;
-import '../../get_content_files.dart';
+import '../vars_puppe.dart' show ErrorType;
 import '../../../providers/process_provider.dart';
 import '../../../providers/terminal_provider.dart';
 
@@ -103,62 +101,32 @@ Future<String> anaErr
   String error, String seccion, String step) async
 {
 
+  pprov.receiverCurrent!.intents = pprov.receiverCurrent!.intents+1;
+
   final tipoErr = getTipoDeError(error);
   if(tipoErr.isEmpty) {
     console.addWar('Error Indeterminado');
     console.addErr(tipoErr['err']);
-    return 'Indeterminado';
+    pprov.receiverCurrent!.errores.add(
+      {
+        'step': step, 'tipo': 'Indeterminado',
+        'err' : tipoErr['err']
+      },
+    );
+  }else{
+
+    pprov.receiverCurrent!.errores.add(
+      {
+        'step': step, 'tipo': tipoErr['txtType'],
+        'err' : tipoErr['err']
+      },
+    );
+    console.addErr(tipoErr['err']);
   }
 
-  console.addErr(tipoErr['err']);
-  console.addTask('Sección:: $seccion > $step');
-  await _sleep(time: 350);
-
-  if(pprov.isProcessOnErr){
-    console.addOk('REG. Tipo ${tipoErr['type']}');
-    console.addDiv();
-    return tipoErr['err'];
-  }
-
-  String typeE = '';
-  bool goPapelera = false;
-  pprov.receiverCurrent.cmds.clear();
-  pprov.receiverCurrent.seccName = seccion;
-  pprov.receiverCurrent.errores.add(tipoErr['err']);
-  pprov.receiverCurrent.intents = pprov.receiverCurrent.intents+1;
-
-  switch (tipoErr['type']) {
-    case ErrorType.retry:
-      typeE = ErrorType.retry.name;
-      if(pprov.receiverCurrent.intents < intentos) {
-        pprov.receiverCurrent.cmds.add(CmdType.retryThis);
-      }else{
-        goPapelera = true;
-      }
-      break;
-    case ErrorType.contac:
-    typeE = ErrorType.contac.name;
-      pprov.receiverCurrent.cmds.add(CmdType.contactanos);
-      goPapelera = true;
-      break;
-    case ErrorType.drash:
-    typeE = ErrorType.drash.name;
-      goPapelera = true;
-      break;
-    case ErrorType.stop:
-      typeE = ErrorType.stop.name;
-      pprov.receiverCurrent.cmds.add(CmdType.stopAlert);
-      break;
-    default:
-  }
-
-  if(goPapelera) {
-    pprov.receiverCurrent.cmds.add(CmdType.notifRemite);
-    pprov.receiverCurrent.cmds.add(CmdType.papelera);
-  }
-
-  console.addOk('REGISTRADO el tipo [$typeE]');
+  console.addOk('[ERROR] REGISTRADO .......[X]');
   console.addDiv();
+  await _sleep();
   return tipoErr['err'];
 }
 
@@ -187,90 +155,22 @@ Map<String, dynamic> getTipoDeError(String error) {
   }
   
   final err = error.replaceAll('<$type>', '');
-  return { 'type': tipo, 'err' : err };
+  return { 'type': tipo, 'err' : err, 'txtType': tipo.name};
 }
 
 ///
-Future<List<String>> getMsgBy(String nameFile) async {
-  return await GetContentFile.getMsgOfCampaing(nameFile);
-}
-
-///
-List<String> buildMsgCom
-  (ProcessProvider pprov, {String nombre = ''})
-{
-
-  List<String> msg = pprov.msgCurrentFormat;
+List<String> buildMsgCom(ProcessProvider pprov) {
   List<String> toCompare = [];
-  String nom = nombre;
-  if(nombre.isEmpty) {
-    nom = pprov.receiverCurrent.nombre;
-  }
-  List<String> items = nom.toLowerCase().split(' ');
-
-  for (var i = 0; i < items.length; i++) {
-    toCompare.add(items[i].trim());
-  }
-
   if(pprov.enProceso.data.containsKey('marca')) {
-
-    items = pprov.enProceso.data['marca']['nombre'].toString().toLowerCase().split(' ');
+    final items = pprov.enProceso.data['marca']['nombre'].toString().toLowerCase().split(' ');
     for (var i = 0; i < items.length; i++) {
       toCompare.add(items[i].trim());
-    }
-    items = pprov.enProceso.data['modelo']['nombre'].toString().toLowerCase().split(' ');
-    for (var i = 0; i < items.length; i++) {
-      toCompare.add(items[i].trim());
-    }
-
-  }else{
-
-    for (var i = 0; i < msg.length; i++) {
-
-      if(msg[i].contains('*')) {
-
-        String tmp = msg[i].replaceAll('*', '');
-        if(!tmp.contains('http')) {
-          items = tmp.toLowerCase().split(' ');
-          for (var i = 0; i < items.length; i++) {
-            String lett = items[i].trim();
-            if(lett.length > 3) {
-              if(!lett.startsWith('_')) {
-                if(!lett.contains('.')) {
-                  if(toCompare.length < 5){
-                    toCompare.add(items[i].trim());
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
     }
   }
-
   toCompare.add('autoparnet');
+  toCompare.add('cotizo');
+  toCompare.add('http');
+  toCompare.add('/${pprov.enProceso.data['id']}-');
   return toCompare;
 }
 
-///  
-List<String> replaceAutoAndIdOrden(ProcessProvider pprov, List<String> msg) {
-
-  for (var i = 0; i < msg.length; i++) {
-
-    if(msg[i].contains('_auto_')){
-      String auto = pprov.enProceso.data['modelo']['nombre'];
-      auto = '$auto ${pprov.enProceso.data['anio']}';
-      auto = '$auto de ${pprov.enProceso.data['marca']['nombre']}';
-      msg[i] = msg[i].replaceAll('_auto_', auto);
-    }
-
-    if(msg[i].contains('_idOrden_')) {
-      msg[i] = msg[i].replaceAll('_idOrden_', '${pprov.enProceso.src['id']}');
-    }
-  }
-  return msg;
-}
-
-///
-Future<Map<String, dynamic>> getLstTester() async => await GetContentFile.getCurcsTesting();
