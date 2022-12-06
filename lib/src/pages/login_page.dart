@@ -387,18 +387,41 @@ class _LoginPageState extends State<LoginPage> {
   ///
   Future<void> _checkRedLan() async {
 
+    String res = '';
     if(_globals.env == 'dev') {
-      _sock.msgErr = await _sock.getIpToHarbiFromLocal();
+      res = await _sock.getIpToHarbiFromLocal();
     }else{
-      _sock.msgErr = await _sock.getIpToHarbiFromServer();
+      res = await _sock.getIpToHarbiFromServer();
     }
-    if(!_sock.msgErr.startsWith('ERROR')) {
-      _sock.msgErr = 'AUTENTÍCATE POR FAVOR';
+
+    if(res == 'noCode') {
+      await _recoveryCodeSwh();
+      return;
+    }
+
+    _sock.msgErr = res;
+    if(_sock.msgErr.startsWith('ERROR')) {
+      if(_sock.msgErr.contains('Código')) {
+        await _recoveryCodeSwh();
+        return;
+      }
+      _sock.msgErr = 'SIN CONEXIÓN CON HARBI';
     }
 
     Future.delayed(const Duration(microseconds: 300), (){
       if(mounted) { setState(() {}); }
     });
+  }
+
+  ///
+  Future<void> _recoveryCodeSwh() async {
+
+    _sock.msgErr = 'Define Estación de Trabajo';
+    final swh = await _definirCodeSwh();
+    if(swh.isNotEmpty) {
+      _sock.setSwh(swh);
+      _checkRedLan();
+    }
   }
 
   ///
@@ -518,4 +541,58 @@ class _LoginPageState extends State<LoginPage> {
     }
     return users;
   }
+
+  ///
+  Future<String> _definirCodeSwh() async {
+
+    String station = '';
+    await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: _globals.backgroundStartColor,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(Icons.workspace_premium, size: 25, color: Colors.blue),
+            SizedBox(width: 10),
+            Texto(txt: 'ESTACIÓN DE TRABAJO')
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            const Texto(
+              txt: 'Define a que estación de trabajo que deseas hacer '
+              'conexión permanente',
+              isBold: true, isCenter: true, sz: 20,
+            ),
+            const SizedBox(height: 15),
+            TextField(
+              autofocus: true,
+              onChanged: (val) {
+                station = val.toUpperCase();
+              },
+              onSubmitted: (value) {
+                Navigator.of(context).pop();
+              },
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Texto(
+                txt: 'DEFINIR', txtC: Colors.black,
+              )
+            )
+          ],
+        ),
+      )
+    );
+
+    return station;
+  }
+
 }

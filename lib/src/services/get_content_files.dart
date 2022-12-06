@@ -630,14 +630,28 @@ class GetContentFile {
     return mensajes;
   }
 
+  /// 
+  static String getCodeSwh() {
+    
+    String pathTo = GetPaths.getPathRoot();
+    final File codeF = File('$pathTo${GetPaths.getSep()}swh.txt');
+    String codeSwh = '';
+    if(!codeF.existsSync()) {
+      codeF.writeAsStringSync('');
+    }else{
+      codeSwh = codeF.readAsStringSync();
+    }
+    if(codeSwh.isEmpty) { return 'noCode'; }
+    return codeSwh;
+  }
+
   /// Es usado solo en desarrollo para no estar pidiendo
   /// de manera remota la IP de harbi.
   static String ipConectionLocal() {
 
+    final codeSwh = getCodeSwh();
+    if(codeSwh.isEmpty) { return 'noCode'; }
     String pathTo = GetPaths.getPathRoot();
-    final File codeF = File('$pathTo${GetPaths.getSep()}swh.txt');
-    final codeSwh = codeF.readAsStringSync();
-
     final File cargosF = File('$pathTo${GetPaths.getSep()}harbi_connx.json');
     if(cargosF.existsSync()) {
       final res = Map<String, dynamic>.from(json.decode(cargosF.readAsStringSync()));
@@ -646,6 +660,16 @@ class GetContentFile {
       }
     }
     return '';
+  }
+
+  /// 
+  static void setSwh(String codeSwh) {
+
+    String pathTo = GetPaths.getPathRoot();
+    final File codeF = File('$pathTo${GetPaths.getSep()}swh.txt');
+    if(codeF.existsSync()) {
+      codeF.writeAsStringSync(codeSwh);
+    }
   }
 
 

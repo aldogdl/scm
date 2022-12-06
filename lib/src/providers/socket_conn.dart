@@ -316,6 +316,8 @@ class SocketConn extends ChangeNotifier {
   /// remoto, ya que no sabemos desde que maquina se esta corriendo el SCM.
   Future<String> getIpToHarbiFromServer() async {
 
+    final ipCode = GetContentFile.getCodeSwh();
+    if(ipCode == 'noCode'){ return ipCode; }
     String ipH = 'Comunicate con Sistemas';
 
     String url = 'https://autoparnet.com';    
@@ -344,7 +346,11 @@ class SocketConn extends ChangeNotifier {
         return 'ERROR, Reinicia HARBI y revisa la conexión a Internet.';
       }
 
-      ipH = utf8.decode(base64Decode(MyHttp.result['body']));
+      if(!MyHttp.result['body'].containsKey(ipCode)) {
+        return 'ERROR, El Código $ipCode no es valido';
+      }
+
+      ipH = utf8.decode(base64Decode(MyHttp.result['body'][ipCode]));
       if(ipH.contains(':')) {
         final partes = List<String>.from(ipH.split(':'));
         globals.ipHarbi = partes.first;
@@ -356,11 +362,15 @@ class SocketConn extends ChangeNotifier {
     return 'ERROR desconocido, $ipH';
   }
 
-  
+  ///
+  void setSwh(String swh) => GetContentFile.setSwh(swh);
+
   /// Recuperamos la Ip de Harbi, de manera local.
   Future<String> getIpToHarbiFromLocal() async {
 
     final ipCode = GetContentFile.ipConectionLocal();
+    if(ipCode == 'noCode'){ return ipCode; }
+
     final ipH = utf8.decode(base64Decode(ipCode));
 
     if(ipH.contains(':')) {
